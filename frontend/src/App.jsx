@@ -11,6 +11,7 @@ import Customers from './pages/Customers';
 import CustomerLedger from './pages/CustomerLedger';
 import Billing from './pages/Billing';
 import Bills from './pages/Bills';
+import Reports from './pages/Reports';
 import Settings from './pages/Settings';
 
 export default function App() {
@@ -30,7 +31,7 @@ export default function App() {
               <Route path="/products" element={<Products />} />
               <Route path="/customers" element={<Customers />} />
               <Route path="/customers/:id" element={<CustomerLedger />} />
-              <Route path="/reports" element={<div className="p-4 bg-white rounded-xl shadow-sm border border-slate-200">Reports (Phase 9)</div>} />
+              <Route path="/reports" element={<Reports />} />
               <Route path="/settings" element={<Settings />} />
             </Route>
           </Route>

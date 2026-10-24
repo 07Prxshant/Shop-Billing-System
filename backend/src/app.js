@@ -10,6 +10,7 @@ const customerRoutes = require('./routes/customerRoutes');
 const billRoutes = require('./routes/billRoutes');
 const paymentRoutes = require('./routes/paymentRoutes');
 const settingRoutes = require('./routes/settingRoutes');
+const reportRoutes = require('./routes/reportRoutes');
 
 const app = express();
 
@@ -42,6 +43,7 @@ app.use('/api/customers', customerRoutes);
 app.use('/api/bills', billRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/settings', settingRoutes);
+app.use('/api/reports', reportRoutes);
 
 // Centralized error handler
 app.use(errorHandler);
