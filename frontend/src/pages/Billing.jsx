@@ -4,6 +4,7 @@ import api from '../api/client';
 import { formatCurrency, round2 } from '../utils/money';
 import { calculateBillTotals } from '../utils/calc';
 import { toInputDateFormat } from '../utils/date';
+import { generateInvoicePDF } from '../utils/pdfGenerator';
 import {
   ShoppingCart,
   User,
@@ -651,16 +652,31 @@ export default function Billing() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-3 gap-2">
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    const setRes = await api.get('/settings');
+                    generateInvoicePDF(successBill, setRes.data?.data || {});
+                  } catch (e) {
+                    generateInvoicePDF(successBill, {});
+                  }
+                }}
+                className="py-2.5 px-3 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs flex items-center justify-center gap-1.5 border border-indigo-200/60"
+              >
+                <FileDown className="w-3.5 h-3.5" />
+                <span>PDF</span>
+              </button>
               <button
                 type="button"
                 onClick={() => {
                   setSuccessBill(null);
                   navigate(`/bills`);
                 }}
-                className="py-2.5 px-4 rounded-xl border border-slate-200 text-slate-700 font-semibold text-xs hover:bg-slate-50"
+                className="py-2.5 px-3 rounded-xl border border-slate-200 text-slate-700 font-semibold text-xs hover:bg-slate-50"
               >
-                View in Bills List
+                Bills List
               </button>
               <button
                 type="button"
@@ -671,9 +687,9 @@ export default function Billing() {
                   setAmountPaid(0);
                   setNotes('');
                 }}
-                className="py-2.5 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs shadow-md shadow-indigo-600/20"
+                className="py-2.5 px-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs shadow-md shadow-indigo-600/20"
               >
-                Create Another Bill
+                New Bill
               </button>
             </div>
           </div>

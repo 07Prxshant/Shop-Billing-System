@@ -4,6 +4,7 @@ import api from '../api/client';
 import { formatCurrency, round2 } from '../utils/money';
 import { formatDate, toInputDateFormat } from '../utils/date';
 import AddPaymentModal from '../components/AddPaymentModal';
+import { generateCustomerStatementPDF } from '../utils/pdfGenerator';
 import {
   BookOpen,
   ArrowLeft,
@@ -161,6 +162,23 @@ export default function CustomerLedger() {
     }
   };
 
+  // Download Customer Statement PDF
+  const handleDownloadStatement = async () => {
+    try {
+      const res = await api.get(`/customers/${id}/statement`, {
+        params: {
+          from: fromDate || undefined,
+          to: toDate || undefined
+        }
+      });
+      if (res.data.success) {
+        generateCustomerStatementPDF(res.data.data);
+      }
+    } catch (err) {
+      alert('Failed to generate statement PDF: ' + (err.response?.data?.message || err.message));
+    }
+  };
+
   // Unpaid bills for payment modal
   const unpaidBills = transactions.filter((t) => Number(t.amount_pending) > 0);
 
@@ -197,7 +215,7 @@ export default function CustomerLedger() {
           </button>
 
           <button
-            onClick={() => navigate(`/customers/${id}/statement`)}
+            onClick={handleDownloadStatement}
             className="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold text-xs rounded-xl border border-indigo-200/60 transition-all cursor-pointer"
           >
             <FileDown className="w-4 h-4" />

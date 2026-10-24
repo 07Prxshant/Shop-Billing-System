@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import api from '../api/client';
 import { formatCurrency } from '../utils/money';
 import { formatDate } from '../utils/date';
+import { generateInvoicePDF } from '../utils/pdfGenerator';
 import {
   Receipt,
   Search,
@@ -12,7 +13,8 @@ import {
   Trash2,
   Calendar,
   X,
-  Plus
+  Plus,
+  FileDown
 } from 'lucide-react';
 
 export default function Bills() {
@@ -344,7 +346,22 @@ export default function Bills() {
               </div>
             </div>
 
-            <div className="mt-6 pt-4 border-t border-slate-100 flex justify-end">
+            <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between">
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    const setRes = await api.get('/settings');
+                    generateInvoicePDF(selectedBill, setRes.data?.data || {});
+                  } catch (e) {
+                    generateInvoicePDF(selectedBill, {});
+                  }
+                }}
+                className="inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs rounded-xl border border-indigo-200/60 transition-colors"
+              >
+                <FileDown className="w-4 h-4" />
+                <span>Download PDF Invoice</span>
+              </button>
               <button
                 type="button"
                 onClick={() => setSelectedBill(null)}
