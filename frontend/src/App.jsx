@@ -1,58 +1,38 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider } from './context/AuthContext';
+import ProtectedRoute from './components/ProtectedRoute';
+import Layout from './components/Layout';
 
-function App() {
-  const [health, setHealth] = useState(null);
-  const [loading, setLoading] = useState(true);
+import Login from './pages/Login';
+import Dashboard from './pages/Dashboard';
 
-  useEffect(() => {
-    fetch('/api/health')
-      .then(res => res.json())
-      .then(data => {
-        setHealth(data);
-        setLoading(false);
-      })
-      .catch(err => {
-        console.error('API Health check error:', err);
-        setLoading(false);
-      });
-  }, []);
-
+export default function App() {
   return (
-    <div className="min-h-screen bg-slate-100 flex flex-col items-center justify-center p-6">
-      <div className="max-w-md w-full bg-white rounded-2xl shadow-lg p-8 border border-slate-200 text-center">
-        <div className="w-16 h-16 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-4 text-3xl shadow-sm">
-          🛒
-        </div>
-        <h1 className="text-2xl font-bold text-slate-800">Shop Billing System</h1>
-        <p className="text-sm text-slate-500 mt-1">Full-stack React + Node.js + Express + MySQL</p>
+    <AuthProvider>
+      <BrowserRouter>
+        <Routes>
+          {/* Public Route */}
+          <Route path="/login" element={<Login />} />
 
-        <div className="mt-6 p-4 rounded-xl bg-slate-50 border border-slate-200 text-left">
-          <div className="flex items-center justify-between text-sm font-medium">
-            <span className="text-slate-600">Backend Health:</span>
-            {loading ? (
-              <span className="text-amber-600 animate-pulse">Checking...</span>
-            ) : health && health.success ? (
-              <span className="text-emerald-600 font-semibold flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
-                Connected
-              </span>
-            ) : (
-              <span className="text-red-500 font-semibold">Offline</span>
-            )}
-          </div>
-          {health && (
-            <p className="text-xs text-slate-500 mt-2 font-mono break-all">
-              {health.message}
-            </p>
-          )}
-        </div>
+          {/* Protected Routes inside Layout */}
+          <Route element={<ProtectedRoute />}>
+            <Route element={<Layout />}>
+              <Route path="/" element={<Dashboard />} />
+              <Route path="/billing" element={<div className="p-4 bg-white rounded-xl shadow-sm border border-slate-200">Billing POS (Phase 5)</div>} />
+              <Route path="/bills" element={<div className="p-4 bg-white rounded-xl shadow-sm border border-slate-200">Bills List (Phase 5)</div>} />
+              <Route path="/customers" element={<div className="p-4 bg-white rounded-xl shadow-sm border border-slate-200">Customers (Phase 4)</div>} />
+              <Route path="/customers/:id" element={<div className="p-4 bg-white rounded-xl shadow-sm border border-slate-200">Customer Ledger (Phase 7)</div>} />
+              <Route path="/products" element={<div className="p-4 bg-white rounded-xl shadow-sm border border-slate-200">Products (Phase 3)</div>} />
+              <Route path="/reports" element={<div className="p-4 bg-white rounded-xl shadow-sm border border-slate-200">Reports (Phase 9)</div>} />
+              <Route path="/settings" element={<div className="p-4 bg-white rounded-xl shadow-sm border border-slate-200">Settings</div>} />
+            </Route>
+          </Route>
 
-        <div className="mt-6 text-xs text-slate-400">
-          Phase 1: Setup Complete &bull; Initializing Auth...
-        </div>
-      </div>
-    </div>
+          {/* Fallback */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </BrowserRouter>
+    </AuthProvider>
   );
 }
-
-export default App;

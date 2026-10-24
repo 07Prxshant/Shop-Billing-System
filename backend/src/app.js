@@ -4,6 +4,8 @@ const helmet = require('helmet');
 const morgan = require('morgan');
 const errorHandler = require('./middleware/errorHandler');
 
+const authRoutes = require('./routes/authRoutes');
+
 const app = express();
 
 // Security and utility middleware
@@ -28,14 +30,8 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// Routes will be registered here
-// app.use('/api/auth', authRoutes);
-// app.use('/api/products', productRoutes);
-// app.use('/api/customers', customerRoutes);
-// app.use('/api/bills', billRoutes);
-// app.use('/api/payments', paymentRoutes);
-// app.use('/api/reports', reportRoutes);
-// app.use('/api/settings', settingRoutes);
+// Authentication routes
+app.use('/api/auth', authRoutes);
 
 // Centralized error handler
 app.use(errorHandler);
