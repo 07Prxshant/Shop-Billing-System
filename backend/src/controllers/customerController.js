@@ -1,4 +1,5 @@
 const db = require('../config/db');
+const { round2 } = require('../utils/calc');
 
 // List customers with live calculated totals
 async function getAllCustomers(req, res, next) {
@@ -53,7 +54,6 @@ async function getAllCustomers(req, res, next) {
     const [rows] = await db.query(query, params);
 
     let results = rows;
-    // Additional filtering for fallback mode if needed
     if (db.isFallback && db.isFallback()) {
       if (search && search.trim()) {
         const q = search.trim().toLowerCase();
@@ -121,6 +121,195 @@ async function getCustomerById(req, res, next) {
     return res.json({
       success: true,
       data: rows[0]
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// Get customer summary for a given date range
+async function getCustomerSummary(req, res, next) {
+  try {
+    const { id } = req.params;
+    const { from, to } = req.query;
+
+    const fromDate = from || '1970-01-01';
+    const toDate = to || '2099-12-31';
+
+    const [billRows] = await db.query(
+      `
+      SELECT 
+        COALESCE(SUM(total_amount), 0) AS total_billed,
+        COALESCE(SUM(amount_paid), 0) AS total_paid_on_bills,
+        COALESCE(SUM(amount_pending), 0) AS total_pending,
+        COUNT(id) AS bill_count
+      FROM bills
+      WHERE customer_id = ? AND is_deleted = 0 AND bill_date BETWEEN ? AND ?
+      `,
+      [id, fromDate, toDate]
+    );
+
+    const [payRows] = await db.query(
+      `
+      SELECT COALESCE(SUM(amount), 0) AS total_paid
+      FROM payments
+      WHERE customer_id = ? AND is_deleted = 0 AND payment_date BETWEEN ? AND ?
+      `,
+      [id, fromDate, toDate]
+    );
+
+    const totalBilled = round2(billRows[0]?.total_billed || 0);
+    const totalPaid = round2(payRows[0]?.total_paid || 0);
+    const totalPending = round2(Math.max(0, totalBilled - totalPaid));
+    const billCount = parseInt(billRows[0]?.bill_count, 10) || 0;
+
+    return res.json({
+      success: true,
+      data: {
+        total_billed: totalBilled,
+        total_paid: totalPaid,
+        total_pending: totalPending,
+        bill_count: billCount
+      }
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// Get customer transactions (daily list of bills or grouped monthly view)
+async function getCustomerTransactions(req, res, next) {
+  try {
+    const { id } = req.params;
+    const { from, to, view } = req.query;
+
+    const fromDate = from || '1970-01-01';
+    const toDate = to || '2099-12-31';
+
+    if (view === 'monthly') {
+      // Grouping query for the monthly view
+      const [months] = await db.query(
+        `
+        SELECT 
+          DATE_FORMAT(bill_date, '%Y-%m') AS month,
+          SUM(total_amount) AS billed,
+          SUM(amount_paid) AS paid,
+          SUM(amount_pending) AS pending,
+          COUNT(id) AS bill_count
+        FROM bills
+        WHERE customer_id = ? AND is_deleted = 0 AND bill_date BETWEEN ? AND ?
+        GROUP BY month
+        ORDER BY month DESC
+        `,
+        [id, fromDate, toDate]
+      );
+
+      return res.json({
+        success: true,
+        data: months
+      });
+    }
+
+    // Default daily transactions view
+    const [bills] = await db.query(
+      `
+      SELECT 
+        b.id,
+        b.bill_no,
+        b.bill_date,
+        b.subtotal,
+        b.discount,
+        b.tax,
+        b.total_amount,
+        b.amount_paid,
+        b.amount_pending,
+        b.status,
+        b.payment_mode,
+        b.notes,
+        COUNT(bi.id) AS items_count
+      FROM bills b
+      LEFT JOIN bill_items bi ON bi.bill_id = b.id
+      WHERE b.customer_id = ? AND b.is_deleted = 0 AND b.bill_date BETWEEN ? AND ?
+      GROUP BY b.id
+      ORDER BY b.bill_date DESC, b.id DESC
+      `,
+      [id, fromDate, toDate]
+    );
+
+    return res.json({
+      success: true,
+      data: bills
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// Statement data for PDF generation
+async function getCustomerStatement(req, res, next) {
+  try {
+    const { id } = req.params;
+    const { from, to } = req.query;
+
+    const fromDate = from || '1970-01-01';
+    const toDate = to || '2099-12-31';
+
+    // 1. Customer profile
+    const [custRows] = await db.query(
+      'SELECT id, name, phone, address FROM customers WHERE id = ? AND is_deleted = 0',
+      [id]
+    );
+    if (!custRows || custRows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Customer not found' });
+    }
+    const customer = custRows[0];
+
+    // 2. Shop settings
+    const [settingsRows] = await db.query('SELECT * FROM settings WHERE id = 1');
+    const settings = settingsRows[0] || {};
+
+    // 3. Bills in period
+    const [bills] = await db.query(
+      `
+      SELECT id, bill_no, bill_date, total_amount, amount_paid, amount_pending, status, payment_mode
+      FROM bills 
+      WHERE customer_id = ? AND is_deleted = 0 AND bill_date BETWEEN ? AND ?
+      ORDER BY bill_date ASC, id ASC
+      `,
+      [id, fromDate, toDate]
+    );
+
+    // 4. Payments in period
+    const [payments] = await db.query(
+      `
+      SELECT p.id, p.payment_date, p.amount, p.mode, p.note, b.bill_no
+      FROM payments p
+      LEFT JOIN bills b ON b.id = p.bill_id
+      WHERE p.customer_id = ? AND p.is_deleted = 0 AND p.payment_date BETWEEN ? AND ?
+      ORDER BY p.payment_date ASC, p.id ASC
+      `,
+      [id, fromDate, toDate]
+    );
+
+    // 5. Totals
+    const totalBilled = bills.reduce((sum, b) => sum + (Number(b.total_amount) || 0), 0);
+    const totalPaid = payments.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+    const pendingBalance = round2(Math.max(0, totalBilled - totalPaid));
+
+    return res.json({
+      success: true,
+      data: {
+        customer,
+        settings,
+        period: { from: fromDate, to: toDate },
+        summary: {
+          total_billed: round2(totalBilled),
+          total_paid: round2(totalPaid),
+          pending_balance: pendingBalance
+        },
+        bills,
+        payments
+      }
     });
   } catch (err) {
     next(err);
@@ -195,7 +384,6 @@ async function deleteCustomer(req, res, next) {
   try {
     const { id } = req.params;
 
-    // Protect default Walk-in customer (id: 1)
     if (Number(id) === 1) {
       return res.status(400).json({
         success: false,
@@ -229,6 +417,9 @@ async function deleteCustomer(req, res, next) {
 module.exports = {
   getAllCustomers,
   getCustomerById,
+  getCustomerSummary,
+  getCustomerTransactions,
+  getCustomerStatement,
   createCustomer,
   updateCustomer,
   deleteCustomer

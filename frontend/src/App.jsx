@@ -8,6 +8,7 @@ import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Products from './pages/Products';
 import Customers from './pages/Customers';
+import CustomerLedger from './pages/CustomerLedger';
 import Billing from './pages/Billing';
 import Bills from './pages/Bills';
 
@@ -27,7 +28,7 @@ export default function App() {
               <Route path="/bills" element={<Bills />} />
               <Route path="/products" element={<Products />} />
               <Route path="/customers" element={<Customers />} />
-              <Route path="/customers/:id" element={<div className="p-4 bg-white rounded-xl shadow-sm border border-slate-200">Customer Ledger (Phase 7)</div>} />
+              <Route path="/customers/:id" element={<CustomerLedger />} />
               <Route path="/reports" element={<div className="p-4 bg-white rounded-xl shadow-sm border border-slate-200">Reports (Phase 9)</div>} />
               <Route path="/settings" element={<div className="p-4 bg-white rounded-xl shadow-sm border border-slate-200">Settings</div>} />
             </Route>

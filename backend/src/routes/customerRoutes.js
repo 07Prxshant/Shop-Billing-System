@@ -10,6 +10,9 @@ router.use(authMiddleware);
 
 router.get('/', customerController.getAllCustomers);
 router.get('/:id', customerController.getCustomerById);
+router.get('/:id/summary', customerController.getCustomerSummary);
+router.get('/:id/transactions', customerController.getCustomerTransactions);
+router.get('/:id/statement', customerController.getCustomerStatement);
 
 router.post(
   '/',
