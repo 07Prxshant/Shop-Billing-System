@@ -7,6 +7,7 @@ import Layout from './components/Layout';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Products from './pages/Products';
+import Customers from './pages/Customers';
 
 export default function App() {
   return (
@@ -21,10 +22,10 @@ export default function App() {
             <Route element={<Layout />}>
               <Route path="/" element={<Dashboard />} />
               <Route path="/products" element={<Products />} />
+              <Route path="/customers" element={<Customers />} />
+              <Route path="/customers/:id" element={<div className="p-4 bg-white rounded-xl shadow-sm border border-slate-200">Customer Ledger (Phase 7)</div>} />
               <Route path="/billing" element={<div className="p-4 bg-white rounded-xl shadow-sm border border-slate-200">Billing POS (Phase 5)</div>} />
               <Route path="/bills" element={<div className="p-4 bg-white rounded-xl shadow-sm border border-slate-200">Bills List (Phase 5)</div>} />
-              <Route path="/customers" element={<div className="p-4 bg-white rounded-xl shadow-sm border border-slate-200">Customers (Phase 4)</div>} />
-              <Route path="/customers/:id" element={<div className="p-4 bg-white rounded-xl shadow-sm border border-slate-200">Customer Ledger (Phase 7)</div>} />
               <Route path="/reports" element={<div className="p-4 bg-white rounded-xl shadow-sm border border-slate-200">Reports (Phase 9)</div>} />
               <Route path="/settings" element={<div className="p-4 bg-white rounded-xl shadow-sm border border-slate-200">Settings</div>} />
             </Route>
