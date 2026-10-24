@@ -195,6 +195,55 @@ function executeFallbackQuery(sql, params = []) {
       return [clone(fallbackStore.users), []];
     }
 
+    // Customer by ID or List
+    if (lower.includes('from customers') && (lower.includes('where id = ?') || lower.includes('where c.id = ?'))) {
+      const id = Number(params[params.length - 1] || params[0]);
+      const cust = fallbackStore.customers.find(c => c.id === id && !c.is_deleted);
+      if (!cust) return [[], []];
+
+      const custBills = fallbackStore.bills.filter(b => b.customer_id === id && !b.is_deleted);
+      const custPayments = fallbackStore.payments.filter(p => p.customer_id === id && !p.is_deleted);
+
+      const totalBilled = custBills.reduce((acc, b) => acc + (Number(b.total_amount) || 0), 0);
+      const totalPaid = custPayments.reduce((acc, p) => acc + (Number(p.amount) || 0), 0);
+      const pendingBalance = Math.max(0, Math.round((totalBilled - totalPaid) * 100) / 100);
+
+      return [[{
+        ...clone(cust),
+        total_billed: Math.round(totalBilled * 100) / 100,
+        total_paid: Math.round(totalPaid * 100) / 100,
+        pending_balance: pendingBalance
+      }], []];
+    }
+
+    if (lower.includes('from customers') && !lower.includes('from bills')) {
+      let list = fallbackStore.customers.filter(c => !c.is_deleted);
+      const enriched = list.map(c => {
+        const custBills = fallbackStore.bills.filter(b => b.customer_id === c.id && !b.is_deleted);
+        const custPayments = fallbackStore.payments.filter(p => p.customer_id === c.id && !p.is_deleted);
+
+        const totalBilled = custBills.reduce((acc, b) => acc + (Number(b.total_amount) || 0), 0);
+        const totalPaid = custPayments.reduce((acc, p) => acc + (Number(p.amount) || 0), 0);
+        const pendingBalance = Math.max(0, Math.round((totalBilled - totalPaid) * 100) / 100);
+
+        let lastPurchaseDate = null;
+        if (custBills.length > 0) {
+          const sorted = [...custBills].sort((a, b) => b.bill_date.localeCompare(a.bill_date));
+          lastPurchaseDate = sorted[0].bill_date;
+        }
+
+        return {
+          ...c,
+          total_billed: Math.round(totalBilled * 100) / 100,
+          total_paid: Math.round(totalPaid * 100) / 100,
+          pending_balance: pendingBalance,
+          last_purchase_date: lastPurchaseDate
+        };
+      });
+
+      return [enriched, []];
+    }
+
     // Bill Number generation (SELECT bill_no FROM bills ORDER BY id DESC LIMIT 1)
     if (lower.includes('from bills') && lower.includes('order by id desc limit 1')) {
       const sorted = [...fallbackStore.bills].sort((a, b) => b.id - a.id);
@@ -357,10 +406,24 @@ function executeFallbackQuery(sql, params = []) {
     }
 
     // Customer by ID
-    if (lower.includes('from customers') && lower.includes('where id = ?')) {
+    if (lower.includes('from customers') && (lower.includes('where id = ?') || lower.includes('where c.id = ?'))) {
       const id = Number(params[0]);
-      const cust = fallbackStore.customers.find(c => c.id === id);
-      return [[cust ? clone(cust) : undefined].filter(Boolean), []];
+      const cust = fallbackStore.customers.find(c => c.id === id && !c.is_deleted);
+      if (!cust) return [[], []];
+
+      const custBills = fallbackStore.bills.filter(b => b.customer_id === id && !b.is_deleted);
+      const custPayments = fallbackStore.payments.filter(p => p.customer_id === id && !p.is_deleted);
+
+      const totalBilled = custBills.reduce((acc, b) => acc + (Number(b.total_amount) || 0), 0);
+      const totalPaid = custPayments.reduce((acc, p) => acc + (Number(p.amount) || 0), 0);
+      const pendingBalance = Math.max(0, Math.round((totalBilled - totalPaid) * 100) / 100);
+
+      return [[{
+        ...clone(cust),
+        total_billed: Math.round(totalBilled * 100) / 100,
+        total_paid: Math.round(totalPaid * 100) / 100,
+        pending_balance: pendingBalance
+      }], []];
     }
 
     // Customers list with totals
@@ -408,10 +471,15 @@ function executeFallbackQuery(sql, params = []) {
     }
 
     // Bill by ID (single)
-    if (lower.includes('from bills') && lower.includes('where') && (lower.includes('id = ?') || lower.includes('b.id = ?'))) {
+    if (lower.includes('from bills') && (lower.includes('where id = ?') || lower.includes('where b.id = ?'))) {
       const id = Number(params[0]);
-      const bill = fallbackStore.bills.find(b => b.id === id);
+      const bill = fallbackStore.bills.find(b => b.id === id && !b.is_deleted);
       if (!bill) return [[], []];
+
+      if (lower.includes('customer_id = ?')) {
+        const custId = Number(params[1]);
+        if (bill.customer_id !== custId) return [[], []];
+      }
 
       const cust = fallbackStore.customers.find(c => c.id === bill.customer_id);
       return [[{
@@ -427,6 +495,21 @@ function executeFallbackQuery(sql, params = []) {
       const billId = Number(params[0]);
       const items = fallbackStore.bill_items.filter(bi => bi.bill_id === billId);
       return [clone(items), []];
+    }
+
+    // Payments sum aggregation
+    if (lower.includes('from payments') && lower.includes('sum(amount)')) {
+      const custId = Number(params[0]);
+      const from = params[1];
+      const to = params[2];
+      const filtered = fallbackStore.payments.filter(p => {
+        if (p.is_deleted || p.customer_id !== custId) return false;
+        if (from && p.payment_date < from) return false;
+        if (to && p.payment_date > to) return false;
+        return true;
+      });
+      const sum = filtered.reduce((acc, p) => acc + (Number(p.amount) || 0), 0);
+      return [[{ total_paid: Math.round(sum * 100) / 100 }], []];
     }
 
     // Payments for a customer or bill
@@ -448,6 +531,15 @@ function executeFallbackQuery(sql, params = []) {
     // Bills list
     if (lower.includes('from bills')) {
       let list = fallbackStore.bills.filter(b => !b.is_deleted);
+      if (lower.includes('customer_id = ?') || lower.includes('b.customer_id = ?')) {
+        const custId = Number(params[0]);
+        list = list.filter(b => b.customer_id === custId);
+      }
+      if (lower.includes('bill_date between ? and ?') && params.length >= 3) {
+        const from = params[1] || '1970-01-01';
+        const to = params[2] || '2099-12-31';
+        list = list.filter(b => b.bill_date >= from && b.bill_date <= to);
+      }
       const enriched = list.map(b => {
         const cust = fallbackStore.customers.find(c => c.id === b.customer_id);
         const items = fallbackStore.bill_items.filter(bi => bi.bill_id === b.id);
