@@ -248,6 +248,34 @@ mysql -u root -p < database/seed.sql
 
 ---
 
+## ⚡ Deployment to Vercel
+
+This project is pre-configured with a root `vercel.json` and serverless API bridge (`api/index.js`), enabling the **entire full-stack application (React frontend + Express backend)** to deploy as a unified project on Vercel with zero CORS issues!
+
+### Steps to Deploy:
+1. Push your latest code to GitHub:
+   ```bash
+   git push origin main
+   ```
+2. Log in to [Vercel](https://vercel.com) and click **"Add New..."** &rarr; **"Project"**.
+3. Import your GitHub repository (`Shop-Billing-System`).
+4. **Vercel Project Settings**:
+   - **Framework Preset**: *Vite* or *Other* (configured automatically via `vercel.json`)
+   - **Root Directory**: `./` (leave default)
+   - **Build Command**: `cd frontend && npm install && npm run build` (automatically picked up from `vercel.json`)
+   - **Output Directory**: `frontend/dist` (automatically picked up from `vercel.json`)
+5. **Environment Variables** (Optional):
+   - `JWT_SECRET`: Any random secret string (e.g. `my_secure_jwt_secret_key`)
+   - *(Optional Cloud MySQL)*: If using a hosted database like TiDB Cloud, Aiven, or Railway:
+     - `DB_HOST`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`, `DB_PORT`
+   - *(If omitted, the app will run in embedded demo mode on Vercel with all sample data preloaded!)*
+6. Click **"Deploy"**!
+7. Once finished, Vercel will give you a live production URL (e.g. `https://shop-billing-system.vercel.app`).
+   - Frontend UI is accessible directly at `/`
+   - Express REST API endpoints are accessible at `/api/*` (e.g. `/api/health`, `/api/products`, `/api/auth/login`)
+
+---
+
 ## 🔑 Default Credentials
 
 - **Email**: `admin@shop.com`

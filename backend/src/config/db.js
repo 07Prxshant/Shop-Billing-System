@@ -140,7 +140,9 @@ function initializeFallbackStore() {
   };
 
   // Try to load any saved state from disk if exists
-  const statePath = path.join(__dirname, '../../.demo_db.json');
+  const statePath = process.env.VERCEL
+    ? path.join('/tmp', '.demo_db.json')
+    : path.join(__dirname, '../../.demo_db.json');
   if (fs.existsSync(statePath)) {
     try {
       const data = JSON.parse(fs.readFileSync(statePath, 'utf8'));
@@ -155,7 +157,9 @@ function initializeFallbackStore() {
 
 function saveFallbackStore() {
   if (!fallbackStore) return;
-  const statePath = path.join(__dirname, '../../.demo_db.json');
+  const statePath = process.env.VERCEL
+    ? path.join('/tmp', '.demo_db.json')
+    : path.join(__dirname, '../../.demo_db.json');
   try {
     fs.writeFileSync(statePath, JSON.stringify(fallbackStore, null, 2), 'utf8');
   } catch (e) {
