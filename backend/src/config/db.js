@@ -5,16 +5,26 @@ const dotenv = require('dotenv');
 
 dotenv.config({ path: path.join(__dirname, '../../.env') });
 
-const dbConfig = {
-  host: process.env.DB_HOST || 'localhost',
-  user: process.env.DB_USER || 'root',
-  password: process.env.DB_PASSWORD || '',
-  database: process.env.DB_NAME || 'shop_billing',
-  port: parseInt(process.env.DB_PORT, 10) || 3306,
+const connectionUri = process.env.DATABASE_URL || process.env.MYSQL_URL || process.env.MYSQL_PRIVATE_URL;
+
+const dbConfig = connectionUri ? {
+  uri: connectionUri,
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0,
-  dateStrings: true
+  dateStrings: true,
+  multipleStatements: true
+} : {
+  host: process.env.DB_HOST || process.env.MYSQLHOST || 'localhost',
+  user: process.env.DB_USER || process.env.MYSQLUSER || 'root',
+  password: process.env.DB_PASSWORD !== undefined ? process.env.DB_PASSWORD : (process.env.MYSQLPASSWORD || ''),
+  database: process.env.DB_NAME || process.env.MYSQLDATABASE || 'shop_billing',
+  port: parseInt(process.env.DB_PORT || process.env.MYSQLPORT, 10) || 3306,
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0,
+  dateStrings: true,
+  multipleStatements: true
 };
 
 let pool = null;
@@ -33,7 +43,7 @@ function initializeFallbackStore() {
         name: 'Shop Admin',
         email: 'admin@shop.com',
         // password: admin123
-        password_hash: '$2a$10$3euPcmQ1vI2wR7E/ZlW3a.fQzF3Wf35qU55Q2n0qg7s61p0uUuQ2e',
+        password_hash: '$2a$10$0H75Ov88HvNJ10imCpY.6uhVXPEyAMvc83aPB5M9z0ijijc0cIzRW',
         role: 'admin',
         created_at: new Date().toISOString()
       }
@@ -798,16 +808,51 @@ function createMockConnection() {
   };
 }
 
+// Run schema and seed automatically on a fresh cloud MySQL instance if empty
+async function autoMigrateIfEmpty(conn) {
+  try {
+    const [tables] = await conn.query("SHOW TABLES LIKE 'users'");
+    if (!tables || tables.length === 0) {
+      console.log('[DB] Fresh MySQL database detected. Applying schema migrations...');
+      const schemaPath = path.join(__dirname, '../../../database/schema.sql');
+      const seedPath = path.join(__dirname, '../../../database/seed.sql');
+
+      if (fs.existsSync(schemaPath)) {
+        let schemaSql = fs.readFileSync(schemaPath, 'utf8');
+        // Strip hardcoded CREATE DATABASE/USE statements so tables are created in the active DB
+        schemaSql = schemaSql.replace(/CREATE DATABASE[^;]+;/gi, '').replace(/USE[^;]+;/gi, '');
+        await conn.query(schemaSql);
+        console.log('[DB] Schema created successfully.');
+      }
+
+      if (fs.existsSync(seedPath)) {
+        let seedSql = fs.readFileSync(seedPath, 'utf8');
+        seedSql = seedSql.replace(/USE[^;]+;/gi, '');
+        await conn.query(seedSql);
+        console.log('[DB] Initial seed data inserted successfully.');
+      }
+    }
+  } catch (migErr) {
+    console.warn('[DB] Auto-migration notice:', migErr.message);
+  }
+}
+
 // Initialize database pool
 async function initDB() {
   try {
     const directPool = mysql.createPool(dbConfig);
-    // Quick connection test
+    // Connection test & optional auto-migration
     const conn = await directPool.getConnection();
-    conn.release();
+    try {
+      await autoMigrateIfEmpty(conn);
+    } finally {
+      conn.release();
+    }
+
     pool = directPool;
     isUsingFallback = false;
-    console.log(`[DB] Connected successfully to MySQL (${dbConfig.host}:${dbConfig.port}/${dbConfig.database})`);
+    const dbTarget = connectionUri ? 'URI' : `${dbConfig.host}:${dbConfig.port}/${dbConfig.database}`;
+    console.log(`[DB] Connected successfully to MySQL (${dbTarget})`);
     return pool;
   } catch (err) {
     console.warn(`[DB] Warning: MySQL not accessible (${err.message}). Using Embedded Demo Store.`);

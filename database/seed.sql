@@ -6,7 +6,7 @@ USE shop_billing;
 -- 1. Admin User (Password: admin123)
 -- bcrypt hash for 'admin123'
 INSERT INTO users (id, name, email, password_hash, role)
-VALUES (1, 'Shop Admin', 'admin@shop.com', '$2b$10$u4M0qE8ZgH9j1i2K3l4M5.Jk9aBvC6dE7fG8hI9jK0l1m2n3o4p5q', 'admin')
+VALUES (1, 'Shop Admin', 'admin@shop.com', '$2a$10$0H75Ov88HvNJ10imCpY.6uhVXPEyAMvc83aPB5M9z0ijijc0cIzRW', 'admin')
 ON DUPLICATE KEY UPDATE name=VALUES(name);
 
 -- 2. Default Walk-in Customer (id: 1)

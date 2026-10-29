@@ -6,7 +6,7 @@ const PORT = process.env.PORT || 5000;
 async function startServer() {
   try {
     await db.initDB();
-    app.listen(PORT, () => {
+    app.listen(PORT, '0.0.0.0', () => {
       console.log(`[Server] Shop Billing API server running on port ${PORT}`);
       console.log(`[Server] Health check: http://localhost:${PORT}/api/health`);
     });
