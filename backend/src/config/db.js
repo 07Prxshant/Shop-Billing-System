@@ -230,7 +230,8 @@ function executeFallbackQuery(sql, params = []) {
       }], []];
     }
 
-    if (lower.includes('from customers') && !lower.includes('from bills')) {
+    // Customer list with totals
+    if (lower.includes('from customers c') || (lower.includes('from customers') && !lower.includes('from bills b join') && !lower.includes('total_spend'))) {
       let list = fallbackStore.customers.filter(c => !c.is_deleted);
       const enriched = list.map(c => {
         const custBills = fallbackStore.bills.filter(b => b.customer_id === c.id && !b.is_deleted);
@@ -247,12 +248,19 @@ function executeFallbackQuery(sql, params = []) {
         }
 
         return {
-          ...c,
+          ...clone(c),
           total_billed: Math.round(totalBilled * 100) / 100,
           total_paid: Math.round(totalPaid * 100) / 100,
           pending_balance: pendingBalance,
           last_purchase_date: lastPurchaseDate
         };
+      });
+
+      // Walk-in (id: 1) first, then pending_balance desc, name asc
+      enriched.sort((a, b) => {
+        if (a.id === 1) return -1;
+        if (b.id === 1) return 1;
+        return b.pending_balance - a.pending_balance || a.name.localeCompare(b.name);
       });
 
       return [enriched, []];
@@ -371,7 +379,7 @@ function executeFallbackQuery(sql, params = []) {
     }
 
     // Top customers
-    if (lower.includes('from bills') && lower.includes('group by customer_id') && lower.includes('order by')) {
+    if ((lower.includes('from bills b join customers c') || lower.includes('total_spend')) && lower.includes('group by') && lower.includes('order by')) {
       const map = {};
       fallbackStore.bills.forEach(b => {
         if (!b.is_deleted && b.customer_id !== 1) {
@@ -417,58 +425,6 @@ function executeFallbackQuery(sql, params = []) {
     if (lower.includes('from products') && lower.includes('stock_qty <= low_stock_limit')) {
       const low = fallbackStore.products.filter(p => !p.is_deleted && Number(p.stock_qty) <= Number(p.low_stock_limit));
       return [clone(low), []];
-    }
-
-    // Customer by ID
-    if (lower.includes('from customers') && (lower.includes('where id = ?') || lower.includes('where c.id = ?'))) {
-      const id = Number(params[0]);
-      const cust = fallbackStore.customers.find(c => c.id === id && !c.is_deleted);
-      if (!cust) return [[], []];
-
-      const custBills = fallbackStore.bills.filter(b => b.customer_id === id && !b.is_deleted);
-      const custPayments = fallbackStore.payments.filter(p => p.customer_id === id && !p.is_deleted);
-
-      const totalBilled = custBills.reduce((acc, b) => acc + (Number(b.total_amount) || 0), 0);
-      const totalPaid = custPayments.reduce((acc, p) => acc + (Number(p.amount) || 0), 0);
-      const pendingBalance = Math.max(0, Math.round((totalBilled - totalPaid) * 100) / 100);
-
-      return [[{
-        ...clone(cust),
-        total_billed: Math.round(totalBilled * 100) / 100,
-        total_paid: Math.round(totalPaid * 100) / 100,
-        pending_balance: pendingBalance
-      }], []];
-    }
-
-    // Customers list with totals
-    if (lower.includes('from customers')) {
-      let list = fallbackStore.customers.filter(c => !c.is_deleted);
-      
-      // Calculate totals for each customer
-      const enriched = list.map(c => {
-        const custBills = fallbackStore.bills.filter(b => b.customer_id === c.id && !b.is_deleted);
-        const custPayments = fallbackStore.payments.filter(p => p.customer_id === c.id && !p.is_deleted);
-        
-        const totalBilled = custBills.reduce((acc, b) => acc + (Number(b.total_amount) || 0), 0);
-        const totalPaid = custPayments.reduce((acc, p) => acc + (Number(p.amount) || 0), 0);
-        const pendingBalance = Math.max(0, Math.round((totalBilled - totalPaid) * 100) / 100);
-
-        let lastPurchaseDate = null;
-        if (custBills.length > 0) {
-          const sorted = [...custBills].sort((a, b) => b.bill_date.localeCompare(a.bill_date));
-          lastPurchaseDate = sorted[0].bill_date;
-        }
-
-        return {
-          ...c,
-          total_billed: Math.round(totalBilled * 100) / 100,
-          total_paid: Math.round(totalPaid * 100) / 100,
-          pending_balance: pendingBalance,
-          last_purchase_date: lastPurchaseDate
-        };
-      });
-
-      return [enriched, []];
     }
 
     // Product by ID
