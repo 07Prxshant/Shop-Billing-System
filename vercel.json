@@ -3,8 +3,7 @@
   "services": {
     "backend": {
       "root": "backend",
-      "framework": "express",
-      "entrypoint": "src/app.js"
+      "framework": "express"
     },
     "frontend": {
       "root": "frontend",
@@ -14,12 +13,6 @@
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": {
-        "service": "backend"
-      }
-    },
-    {
-      "source": "/health",
       "destination": {
         "service": "backend"
       }
