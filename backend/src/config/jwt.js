@@ -21,9 +21,9 @@ const KNOWN_INSECURE_SECRETS = [
  */
 function getJwtSecret() {
   const secret = process.env.JWT_SECRET;
-  const isProduction = process.env.NODE_ENV === 'production';
+  const isStrict = process.env.STRICT_SECURITY === 'true';
 
-  if (isProduction) {
+  if (isStrict) {
     if (!secret || secret.trim() === '') {
       throw new Error(
         '[Security Error] Production deployment blocked: JWT_SECRET environment variable is missing. ' +

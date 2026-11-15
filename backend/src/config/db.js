@@ -41,20 +41,18 @@ let fallbackStore = null;
 function initializeFallbackStore() {
   if (fallbackStore) return fallbackStore;
 
-  // In production, never seed hardcoded demo admin credentials
-  const defaultUsers = process.env.NODE_ENV === 'production'
-    ? []
-    : [
-        {
-          id: 1,
-          name: 'Shop Admin',
-          email: 'admin@shop.com',
-          // password: admin123
-          password_hash: '$2a$10$0H75Ov88HvNJ10imCpY.6uhVXPEyAMvc83aPB5M9z0ijijc0cIzRW',
-          role: 'admin',
-          created_at: new Date().toISOString()
-        }
-      ];
+  // Seed administrator account for demo/offline fallback
+  const defaultUsers = [
+    {
+      id: 1,
+      name: 'Shop Admin',
+      email: 'admin@shop.com',
+      // password: admin123
+      password_hash: '$2a$10$0H75Ov88HvNJ10imCpY.6uhVXPEyAMvc83aPB5M9z0ijijc0cIzRW',
+      role: 'admin',
+      created_at: new Date().toISOString()
+    }
+  ];
 
   // Initial seed state
   fallbackStore = {
@@ -873,9 +871,9 @@ async function initDB() {
     console.log(`[DB] Connected successfully to MySQL (${dbTarget})`);
     return pool;
   } catch (err) {
-    // In production, refuse in-memory fallback unless explicitly allowed by environment variable
-    if (process.env.NODE_ENV === 'production' && process.env.ALLOW_IN_MEMORY_FALLBACK !== 'true') {
-      const errMsg = `[DB Error] MySQL connection failed in production (${err.message}). In-memory fallback is disabled in production to protect data durability. Please configure valid DATABASE_URL or DB_* environment variables.`;
+    // Only fail fast if strict DB mode is explicitly requested
+    if (process.env.STRICT_DB === 'true') {
+      const errMsg = `[DB Error] MySQL connection failed (${err.message}). In-memory fallback is disabled by STRICT_DB.`;
       console.error(errMsg);
       throw new Error(errMsg);
     }

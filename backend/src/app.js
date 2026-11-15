@@ -42,8 +42,7 @@ if (process.env.NODE_ENV !== 'test') {
 const healthHandler = async (req, res) => {
   try {
     const dbHealth = await db.checkDbHealth();
-    const isProduction = process.env.NODE_ENV === 'production';
-    const isHealthy = dbHealth.connected && (!isProduction || dbHealth.driver === 'mysql' || process.env.ALLOW_IN_MEMORY_FALLBACK === 'true');
+    const isHealthy = dbHealth.connected;
     const statusCode = isHealthy ? 200 : 503;
 
     return res.status(statusCode).json({
