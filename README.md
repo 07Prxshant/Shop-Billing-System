@@ -1,5 +1,8 @@
 # Shop Billing & Customer Ledger System
 
+> 🚀 **Live Demo**: [https://shop-billing-system-h9nn.vercel.app/](https://shop-billing-system-h9nn.vercel.app/)  
+> 🔑 **Demo Credentials**: Email: `admin@shop.com` | Password: `admin123`
+>
 > A comprehensive, full-stack web application designed for retail shops and small businesses to manage products, execute Point-of-Sale (POS) billing, record partial/full customer payments, maintain dynamic customer ledgers, generate tax invoices & PDF statements, and visualize real-time business performance.
 
 ---
@@ -270,7 +273,7 @@ This project is pre-configured with a root `vercel.json` and serverless API brid
      - `DB_HOST`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`, `DB_PORT`
    - *(If omitted, the app will run in embedded demo mode on Vercel with all sample data preloaded!)*
 6. Click **"Deploy"**!
-7. Once finished, Vercel will give you a live production URL (e.g. `https://shop-billing-system.vercel.app`).
+7. Live production URL: [https://shop-billing-system-h9nn.vercel.app/](https://shop-billing-system-h9nn.vercel.app/)
    - Frontend UI is accessible directly at `/`
    - Express REST API endpoints are accessible at `/api/*` (e.g. `/api/health`, `/api/products`, `/api/auth/login`)
 
