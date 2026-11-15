@@ -38,12 +38,7 @@ let isUsingFallback = false;
 let fallbackStore = null;
 
 function isTestEnvironment() {
-  return (
-    process.env.NODE_ENV === 'test' ||
-    Boolean(process.env.NODE_TEST_CONTEXT) ||
-    (Array.isArray(process.execArgv) && process.execArgv.some(arg => arg.includes('--test'))) ||
-    (Array.isArray(process.argv) && process.argv.some(arg => arg.includes('test')))
-  );
+  return process.env.NODE_ENV === 'test' || Boolean(process.env.NODE_TEST_CONTEXT);
 }
 
 // Built-in fallback database for development/demonstrations when MySQL is offline
@@ -436,12 +431,21 @@ function executeFallbackQuery(sql, params = []) {
 
       filtered.forEach(b => {
         const key = isMonth ? b.bill_date.substring(0, 7) : b.bill_date;
-        if (!groups[key]) groups[key] = { label: key, total: 0, count: 0 };
+        if (!groups[key]) groups[key] = { label: key, total: 0, paid: 0, pending: 0, count: 0 };
         groups[key].total += Number(b.total_amount) || 0;
+        groups[key].paid += Number(b.amount_paid) || 0;
+        groups[key].pending += Number(b.amount_pending) || 0;
         groups[key].count += 1;
       });
 
-      const result = Object.values(groups).sort((a, b) => a.label.localeCompare(b.label));
+      const result = Object.values(groups)
+        .map(g => ({
+          ...g,
+          total: Math.round(g.total * 100) / 100,
+          paid: Math.round(g.paid * 100) / 100,
+          pending: Math.round(g.pending * 100) / 100
+        }))
+        .sort((a, b) => a.label.localeCompare(b.label));
       return [result, []];
     }
 

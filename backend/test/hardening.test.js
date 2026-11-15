@@ -479,3 +479,62 @@ test('CLAUDE-BUG-03: Running tests does not persist or write to .demo_db.json on
   const diskPath = path.join(__dirname, '../.demo_db.json');
   assert.equal(fs.existsSync(diskPath), false, '.demo_db.json should not exist on disk after test execution');
 });
+
+// -------------------------------------------------------------
+// FOLLOWUP-ISSUE-A: Reports sales query returns paid and pending
+// -------------------------------------------------------------
+test('FOLLOWUP-ISSUE-A: /api/reports/sales provides paid and pending fields for daily and monthly groupings', async () => {
+  const server = app.listen(0);
+
+  try {
+    const loginRes = await makeRequest(server, '/api/auth/login', 'POST', {
+      email: 'admin@shop.com',
+      password: 'admin123'
+    });
+    const token = loginRes.data.data.token;
+
+    // 1. Daily sales report
+    const dailyRes = await makeRequest(
+      server,
+      '/api/reports/sales?from=2020-01-01&to=2099-12-31',
+      'GET',
+      null,
+      token
+    );
+    assert.equal(dailyRes.status, 200);
+    assert.equal(dailyRes.data.success, true);
+    assert.ok(Array.isArray(dailyRes.data.data));
+    assert.ok(dailyRes.data.data.length > 0);
+
+    for (const row of dailyRes.data.data) {
+      assert.ok(row.label, 'Row must have label');
+      assert.equal(typeof row.total, 'number', 'Row must have numeric total');
+      assert.equal(typeof row.paid, 'number', 'Row must have numeric paid');
+      assert.equal(typeof row.pending, 'number', 'Row must have numeric pending');
+      assert.equal(row.total, Math.round((row.paid + row.pending) * 100) / 100);
+    }
+
+    // 2. Monthly sales report
+    const monthlyRes = await makeRequest(
+      server,
+      '/api/reports/sales?from=2020-01-01&to=2099-12-31&groupBy=month',
+      'GET',
+      null,
+      token
+    );
+    assert.equal(monthlyRes.status, 200);
+    assert.equal(monthlyRes.data.success, true);
+    assert.ok(Array.isArray(monthlyRes.data.data));
+    assert.ok(monthlyRes.data.data.length > 0);
+
+    for (const row of monthlyRes.data.data) {
+      assert.ok(row.label, 'Monthly row must have label (YYYY-MM)');
+      assert.equal(typeof row.total, 'number');
+      assert.equal(typeof row.paid, 'number');
+      assert.equal(typeof row.pending, 'number');
+      assert.equal(row.total, Math.round((row.paid + row.pending) * 100) / 100);
+    }
+  } finally {
+    server.close();
+  }
+});
