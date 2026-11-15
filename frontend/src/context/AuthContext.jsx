@@ -14,23 +14,46 @@ export function AuthProvider({ children }) {
   });
   const [token, setToken] = useState(() => localStorage.getItem('token') || null);
   const [loading, setLoading] = useState(true);
+  const [sessionError, setSessionError] = useState(null);
 
   useEffect(() => {
+    let isMounted = true;
+
     if (token) {
       api.get('/auth/me')
-        .then(res => {
-          if (res.data.success) {
+        .then((res) => {
+          if (!isMounted) return;
+          if (res.data?.success) {
             setUser(res.data.data);
             localStorage.setItem('user', JSON.stringify(res.data.data));
+            setSessionError(null);
           }
         })
-        .catch(() => {
-          logout();
+        .catch((err) => {
+          if (!isMounted) return;
+          const status = err.response?.status;
+          if (status === 401 || status === 403) {
+            // Server explicitly rejected the token (expired or invalid)
+            logout();
+          } else {
+            // Temporary network failure, timeout, 5xx server error, or serverless cold start:
+            // Do NOT log out or clear stored token. Preserve user session so refresh does not kick user to login.
+            console.warn('[Auth] Session verification temporary issue (server error or offline):', err.message);
+            setSessionError('Could not verify session with server. Using cached credentials.');
+          }
         })
-        .finally(() => setLoading(false));
+        .finally(() => {
+          if (isMounted) {
+            setLoading(false);
+          }
+        });
     } else {
       setLoading(false);
     }
+
+    return () => {
+      isMounted = false;
+    };
   }, [token]);
 
   const login = async (email, password) => {
@@ -41,6 +64,7 @@ export function AuthProvider({ children }) {
       localStorage.setItem('user', JSON.stringify(userData));
       setToken(newToken);
       setUser(userData);
+      setSessionError(null);
       return userData;
     }
     throw new Error(res.data.message || 'Login failed');
@@ -51,10 +75,21 @@ export function AuthProvider({ children }) {
     localStorage.removeItem('user');
     setToken(null);
     setUser(null);
+    setSessionError(null);
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, login, logout, loading, isAuthenticated: !!token }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        token,
+        login,
+        logout,
+        loading,
+        sessionError,
+        isAuthenticated: !!token
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

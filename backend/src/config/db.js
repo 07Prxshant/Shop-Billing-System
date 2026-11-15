@@ -7,13 +7,17 @@ dotenv.config({ path: path.join(__dirname, '../../.env') });
 
 const connectionUri = process.env.DATABASE_URL || process.env.MYSQL_URL || process.env.MYSQL_PRIVATE_URL;
 
+const connectionLimit = parseInt(process.env.DB_CONNECTION_LIMIT, 10) || (process.env.VERCEL ? 5 : 10);
+
 const dbConfig = connectionUri ? {
   uri: connectionUri,
   waitForConnections: true,
-  connectionLimit: 10,
+  connectionLimit,
   queueLimit: 0,
   dateStrings: true,
-  multipleStatements: true
+  multipleStatements: true,
+  enableKeepAlive: true,
+  keepAliveInitialDelay: 10000
 } : {
   host: process.env.DB_HOST || process.env.MYSQLHOST || 'localhost',
   user: process.env.DB_USER || process.env.MYSQLUSER || 'root',
@@ -21,10 +25,12 @@ const dbConfig = connectionUri ? {
   database: process.env.DB_NAME || process.env.MYSQLDATABASE || 'shop_billing',
   port: parseInt(process.env.DB_PORT || process.env.MYSQLPORT, 10) || 3306,
   waitForConnections: true,
-  connectionLimit: 10,
+  connectionLimit,
   queueLimit: 0,
   dateStrings: true,
-  multipleStatements: true
+  multipleStatements: true,
+  enableKeepAlive: true,
+  keepAliveInitialDelay: 10000
 };
 
 let pool = null;
@@ -35,19 +41,24 @@ let fallbackStore = null;
 function initializeFallbackStore() {
   if (fallbackStore) return fallbackStore;
 
+  // In production, never seed hardcoded demo admin credentials
+  const defaultUsers = process.env.NODE_ENV === 'production'
+    ? []
+    : [
+        {
+          id: 1,
+          name: 'Shop Admin',
+          email: 'admin@shop.com',
+          // password: admin123
+          password_hash: '$2a$10$0H75Ov88HvNJ10imCpY.6uhVXPEyAMvc83aPB5M9z0ijijc0cIzRW',
+          role: 'admin',
+          created_at: new Date().toISOString()
+        }
+      ];
+
   // Initial seed state
   fallbackStore = {
-    users: [
-      {
-        id: 1,
-        name: 'Shop Admin',
-        email: 'admin@shop.com',
-        // password: admin123
-        password_hash: '$2a$10$0H75Ov88HvNJ10imCpY.6uhVXPEyAMvc83aPB5M9z0ijijc0cIzRW',
-        role: 'admin',
-        created_at: new Date().toISOString()
-      }
-    ],
+    users: defaultUsers,
     customers: [
       { id: 1, name: 'Walk-in', phone: '0000000000', address: 'Direct Counter Sales', is_deleted: 0, created_at: new Date().toISOString() },
       { id: 2, name: 'Rahul Sharma', phone: '9876543210', address: 'Flat 101, Sunshine Heights, Mumbai', is_deleted: 0, created_at: new Date().toISOString() },
@@ -469,6 +480,12 @@ function executeFallbackQuery(sql, params = []) {
 
     // Payments sum aggregation
     if (lower.includes('from payments') && lower.includes('sum(amount)')) {
+      if (lower.includes('bill_id = ?')) {
+        const billId = Number(params[0]);
+        const filtered = fallbackStore.payments.filter(p => !p.is_deleted && p.bill_id === billId);
+        const sum = filtered.reduce((acc, p) => acc + (Number(p.amount) || 0), 0);
+        return [[{ total_paid: Math.round(sum * 100) / 100 }], []];
+      }
       const custId = Number(params[0]);
       const from = params[1];
       const to = params[2];
@@ -682,12 +699,7 @@ function executeFallbackQuery(sql, params = []) {
       if (bill) {
         if (lower.includes('is_deleted = 1')) {
           bill.is_deleted = 1;
-        } else if (lower.includes('amount_paid = ?, amount_pending = ?, status = ?')) {
-          bill.amount_paid = Number(params[0]);
-          bill.amount_pending = Number(params[1]);
-          bill.status = params[2];
-          bill.updated_at = new Date().toISOString();
-        } else {
+        } else if (lower.includes('subtotal = ?') || lower.includes('subtotal =')) {
           bill.subtotal = Number(params[0]);
           bill.discount = Number(params[1]);
           bill.tax = Number(params[2]);
@@ -698,6 +710,11 @@ function executeFallbackQuery(sql, params = []) {
           bill.payment_mode = params[7];
           bill.notes = params[8];
           bill.updated_at = new Date().toISOString();
+        } else if (lower.includes('amount_paid = ?, amount_pending = ?, status = ?')) {
+          bill.amount_paid = Number(params[0]);
+          bill.amount_pending = Number(params[1]);
+          bill.status = params[2];
+          bill.updated_at = new Date().toISOString();
         }
       }
       saveFallbackStore();
@@ -705,11 +722,21 @@ function executeFallbackQuery(sql, params = []) {
     }
 
     if (lower.includes('update payments')) {
+      if (lower.includes('where bill_id = ?')) {
+        const billId = Number(params[params.length - 1]);
+        fallbackStore.payments.forEach(p => {
+          if (p.bill_id === billId) p.is_deleted = 1;
+        });
+        saveFallbackStore();
+        return [{ affectedRows: 1 }, []];
+      }
       const paymentId = Number(params[params.length - 1]);
       const pay = fallbackStore.payments.find(p => p.id === paymentId);
       if (pay) {
         if (lower.includes('is_deleted = 1')) {
           pay.is_deleted = 1;
+        } else if (lower.includes('set amount = ? where id = ?')) {
+          pay.amount = Number(params[0]);
         } else {
           pay.amount = Number(params[0]);
           pay.payment_date = params[1];
@@ -793,8 +820,43 @@ async function autoMigrateIfEmpty(conn) {
   }
 }
 
+// Health check reporter for database connectivity
+async function checkDbHealth() {
+  if (pool && !isUsingFallback) {
+    try {
+      const conn = await pool.getConnection();
+      try {
+        await conn.query('SELECT 1');
+        return { connected: true, driver: 'mysql' };
+      } finally {
+        conn.release();
+      }
+    } catch (err) {
+      return { connected: false, error: err.message, driver: 'mysql' };
+    }
+  }
+  if (isUsingFallback) {
+    return {
+      connected: true,
+      driver: 'in-memory-fallback',
+      warning: 'Non-persistent embedded storage active'
+    };
+  }
+  return { connected: false, error: 'Database uninitialized' };
+}
+
 // Initialize database pool
 async function initDB() {
+  if (pool && !isUsingFallback) {
+    try {
+      const conn = await pool.getConnection();
+      conn.release();
+      return pool;
+    } catch (e) {
+      pool = null;
+    }
+  }
+
   try {
     const directPool = mysql.createPool(dbConfig);
     // Connection test & optional auto-migration
@@ -811,6 +873,13 @@ async function initDB() {
     console.log(`[DB] Connected successfully to MySQL (${dbTarget})`);
     return pool;
   } catch (err) {
+    // In production, refuse in-memory fallback unless explicitly allowed by environment variable
+    if (process.env.NODE_ENV === 'production' && process.env.ALLOW_IN_MEMORY_FALLBACK !== 'true') {
+      const errMsg = `[DB Error] MySQL connection failed in production (${err.message}). In-memory fallback is disabled in production to protect data durability. Please configure valid DATABASE_URL or DB_* environment variables.`;
+      console.error(errMsg);
+      throw new Error(errMsg);
+    }
+
     console.warn(`[DB] Warning: MySQL not accessible (${err.message}). Using Embedded Demo Store.`);
     isUsingFallback = true;
     initializeFallbackStore();
@@ -835,6 +904,7 @@ const dbProxy = new Proxy({}, {
   get(target, prop) {
     if (prop === 'initDB') return initDB;
     if (prop === 'isFallback') return () => isUsingFallback;
+    if (prop === 'checkDbHealth') return checkDbHealth;
     if (pool && typeof pool[prop] === 'function') {
       return pool[prop].bind(pool);
     }

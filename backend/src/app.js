@@ -5,6 +5,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
 const errorHandler = require('./middleware/errorHandler');
+const db = require('./config/db');
 
 const authRoutes = require('./routes/authRoutes');
 const productRoutes = require('./routes/productRoutes');
@@ -38,12 +39,32 @@ if (process.env.NODE_ENV !== 'test') {
 }
 
 // Health check endpoints (both /health and /api/health)
-const healthHandler = (req, res) => {
-  res.json({
-    success: true,
-    message: 'Shop Billing System API is healthy and operational',
-    timestamp: new Date().toISOString()
-  });
+const healthHandler = async (req, res) => {
+  try {
+    const dbHealth = await db.checkDbHealth();
+    const isProduction = process.env.NODE_ENV === 'production';
+    const isHealthy = dbHealth.connected && (!isProduction || dbHealth.driver === 'mysql' || process.env.ALLOW_IN_MEMORY_FALLBACK === 'true');
+    const statusCode = isHealthy ? 200 : 503;
+
+    return res.status(statusCode).json({
+      success: isHealthy,
+      status: isHealthy ? 'healthy' : 'unhealthy',
+      message: isHealthy ? 'Shop Billing System API is healthy and operational' : 'Database connectivity error',
+      database: {
+        connected: dbHealth.connected,
+        driver: dbHealth.driver
+      },
+      environment: process.env.NODE_ENV || 'development',
+      timestamp: new Date().toISOString()
+    });
+  } catch (err) {
+    return res.status(503).json({
+      success: false,
+      status: 'unhealthy',
+      error: 'Health check failed',
+      timestamp: new Date().toISOString()
+    });
+  }
 };
 app.get('/health', healthHandler);
 app.get('/api/health', healthHandler);

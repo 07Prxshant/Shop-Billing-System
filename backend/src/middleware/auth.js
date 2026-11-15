@@ -1,4 +1,4 @@
-const jwt = require('jsonwebtoken');
+const { verifyToken } = require('../config/jwt');
 
 function authMiddleware(req, res, next) {
   const authHeader = req.headers.authorization;
@@ -11,7 +11,7 @@ function authMiddleware(req, res, next) {
 
   const token = authHeader.split(' ')[1];
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'super_secret_jwt_key_shop_billing_2026');
+    const decoded = verifyToken(token);
     req.user = decoded;
     next();
   } catch (err) {

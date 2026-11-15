@@ -1,10 +1,17 @@
 const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
 const db = require('../config/db');
+const { signToken } = require('../config/jwt');
 
 async function login(req, res, next) {
   try {
     const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email and password are required'
+      });
+    }
 
     // Parameterized query to prevent SQL injection
     const [rows] = await db.query(
@@ -21,12 +28,15 @@ async function login(req, res, next) {
 
     const user = rows[0];
 
-    // For demo/seed compatibility: check bcrypt or fallback admin123
     let isMatch = false;
     if (user.password_hash) {
       isMatch = await bcrypt.compare(password, user.password_hash);
-      // Also allow direct match if plain during testing or if bcrypt hash salt mismatch
-      if (!isMatch && (password === 'admin123' && user.email === 'admin@shop.com')) {
+    }
+
+    // Demo bypass: strictly forbidden in production.
+    // In production, only cryptographic hash verification is accepted.
+    if (!isMatch && process.env.NODE_ENV !== 'production') {
+      if (password === 'admin123' && user.email === 'admin@shop.com') {
         isMatch = true;
       }
     }
@@ -45,11 +55,7 @@ async function login(req, res, next) {
       role: user.role
     };
 
-    const token = jwt.sign(
-      payload,
-      process.env.JWT_SECRET || 'super_secret_jwt_key_shop_billing_2026',
-      { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
-    );
+    const token = signToken(payload);
 
     return res.json({
       success: true,

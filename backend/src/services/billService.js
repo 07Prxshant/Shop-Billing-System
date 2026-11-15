@@ -245,9 +245,9 @@ async function getAllBills({ from, to, customerId, status }) {
 }
 
 /**
- * Edit a bill (adjusts stock for changed quantities, recalculates totals, in a transaction)
+ * Edit a bill (adjusts stock for changed quantities, reconciles payments with ledger, recalculates totals in a transaction)
  */
-async function updateBill(id, { items, discount = 0, amount_paid = 0, payment_mode = 'CASH', notes = '' }) {
+async function updateBill(id, { items, discount = 0, amount_paid, payment_mode = 'CASH', notes = '' }) {
   const connection = await db.getConnection();
   await connection.beginTransaction();
 
@@ -312,10 +312,69 @@ async function updateBill(id, { items, discount = 0, amount_paid = 0, payment_mo
       });
     }
 
-    // 5. Recalculate totals
-    const calculations = calculateBillTotals(validatedItems, discount, amount_paid);
+    // 5. Query existing recorded payments for this bill
+    const [paymentRows] = await connection.query(
+      'SELECT id, amount FROM payments WHERE bill_id = ? AND is_deleted = 0 ORDER BY id DESC',
+      [id]
+    );
+    const existingRecordedPaid = round2(
+      paymentRows.reduce((acc, p) => acc + (Number(p.amount) || 0), 0)
+    );
 
-    // 6. Update bill
+    // Target paid: use explicitly provided amount_paid or keep recorded payments
+    let targetPaid = existingRecordedPaid;
+    if (amount_paid !== undefined && amount_paid !== null) {
+      targetPaid = round2(Number(amount_paid));
+      if (isNaN(targetPaid) || targetPaid < 0) {
+        throw new Error('Amount paid cannot be negative.');
+      }
+    }
+
+    // 6. Recalculate totals
+    const calculations = calculateBillTotals(validatedItems, discount, targetPaid);
+
+    // Invariant: paid amount cannot exceed total bill amount
+    if (targetPaid > calculations.total_amount) {
+      throw new Error(
+        `Paid amount (Rs. ${targetPaid}) cannot exceed total bill amount (Rs. ${calculations.total_amount}).`
+      );
+    }
+
+    // 7. Reconcile payment ledger entries with targetPaid
+    const paymentDelta = round2(targetPaid - existingRecordedPaid);
+    if (paymentDelta > 0) {
+      const paymentModeForRecord = payment_mode === 'CREDIT' ? 'CASH' : (payment_mode || 'CASH');
+      await connection.query(
+        `
+        INSERT INTO payments (customer_id, bill_id, amount, payment_date, mode, note)
+        VALUES (?, ?, ?, ?, ?, ?)
+        `,
+        [
+          bill.customer_id,
+          id,
+          paymentDelta,
+          bill.bill_date || new Date().toISOString().split('T')[0],
+          paymentModeForRecord,
+          `Payment adjustment during edit of bill ${bill.bill_no}`
+        ]
+      );
+    } else if (paymentDelta < 0) {
+      let reductionNeeded = Math.abs(paymentDelta);
+      for (const pay of paymentRows) {
+        if (reductionNeeded <= 0) break;
+        const currentPayAmount = Number(pay.amount) || 0;
+        if (currentPayAmount <= reductionNeeded) {
+          await connection.query('UPDATE payments SET is_deleted = 1 WHERE id = ?', [pay.id]);
+          reductionNeeded = round2(reductionNeeded - currentPayAmount);
+        } else {
+          const updatedAmount = round2(currentPayAmount - reductionNeeded);
+          await connection.query('UPDATE payments SET amount = ? WHERE id = ?', [updatedAmount, pay.id]);
+          reductionNeeded = 0;
+        }
+      }
+    }
+
+    // 8. Update bill record
     await connection.query(
       `
       UPDATE bills SET 
@@ -338,7 +397,7 @@ async function updateBill(id, { items, discount = 0, amount_paid = 0, payment_mo
       ]
     );
 
-    // 7. Insert new items and deduct stock
+    // 9. Insert new items and deduct stock
     for (const item of calculations.items) {
       await connection.query(
         `
@@ -411,8 +470,9 @@ async function deleteBill(id) {
       );
     }
 
-    // Soft delete bill
+    // Soft delete bill and associated payments
     await connection.query('UPDATE bills SET is_deleted = 1 WHERE id = ?', [id]);
+    await connection.query('UPDATE payments SET is_deleted = 1 WHERE bill_id = ?', [id]);
 
     await connection.commit();
     return { success: true };
