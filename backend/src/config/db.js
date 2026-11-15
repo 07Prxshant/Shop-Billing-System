@@ -37,6 +37,15 @@ let pool = null;
 let isUsingFallback = false;
 let fallbackStore = null;
 
+function isTestEnvironment() {
+  return (
+    process.env.NODE_ENV === 'test' ||
+    Boolean(process.env.NODE_TEST_CONTEXT) ||
+    (Array.isArray(process.execArgv) && process.execArgv.some(arg => arg.includes('--test'))) ||
+    (Array.isArray(process.argv) && process.argv.some(arg => arg.includes('test')))
+  );
+}
+
 // Built-in fallback database for development/demonstrations when MySQL is offline
 function initializeFallbackStore() {
   if (fallbackStore) return fallbackStore;
@@ -158,16 +167,18 @@ function initializeFallbackStore() {
     ]
   };
 
-  // Try to load any saved state from disk if exists
-  const statePath = process.env.VERCEL
-    ? path.join('/tmp', '.demo_db.json')
-    : path.join(__dirname, '../../.demo_db.json');
-  if (fs.existsSync(statePath)) {
-    try {
-      const data = JSON.parse(fs.readFileSync(statePath, 'utf8'));
-      fallbackStore = data;
-    } catch (e) {
-      // ignore
+  // Try to load any saved state from disk if exists (skip in tests to avoid state pollution)
+  if (!isTestEnvironment()) {
+    const statePath = process.env.VERCEL
+      ? path.join('/tmp', '.demo_db.json')
+      : path.join(__dirname, '../../.demo_db.json');
+    if (fs.existsSync(statePath)) {
+      try {
+        const data = JSON.parse(fs.readFileSync(statePath, 'utf8'));
+        fallbackStore = data;
+      } catch (e) {
+        // ignore
+      }
     }
   }
 
@@ -176,6 +187,7 @@ function initializeFallbackStore() {
 
 function saveFallbackStore() {
   if (!fallbackStore) return;
+  if (isTestEnvironment()) return;
   const statePath = process.env.VERCEL
     ? path.join('/tmp', '.demo_db.json')
     : path.join(__dirname, '../../.demo_db.json');
@@ -411,9 +423,12 @@ function executeFallbackQuery(sql, params = []) {
     }
 
     // Sales chart data
-    if (lower.includes('from bills') && lower.includes('group by') && (lower.includes('bill_date') || lower.includes('date_format'))) {
-      const from = params[0] || '1970-01-01';
-      const to = params[1] || '2099-12-31';
+    if (lower.includes('from bills') && lower.includes('group by') && lower.includes('as label') && (lower.includes('bill_date') || lower.includes('date_format'))) {
+      let from = params[0] || '1970-01-01';
+      let to = params[1] || '2099-12-31';
+      if (lower.includes('interval 6 day')) {
+        from = new Date(Date.now() - 6 * 86400000).toISOString().split('T')[0];
+      }
       const isMonth = lower.includes('%y-%m');
 
       const filtered = fallbackStore.bills.filter(b => !b.is_deleted && b.bill_date >= from && b.bill_date <= to);
@@ -516,15 +531,42 @@ function executeFallbackQuery(sql, params = []) {
     // Bills list
     if (lower.includes('from bills')) {
       let list = fallbackStore.bills.filter(b => !b.is_deleted);
-      if (lower.includes('customer_id = ?') || lower.includes('b.customer_id = ?')) {
+
+      // Customer statement / transactions query: customer_id = ? ... bill_date between ? and ?
+      if (lower.includes('bill_date between ? and ?')) {
         const custId = Number(params[0]);
-        list = list.filter(b => b.customer_id === custId);
-      }
-      if (lower.includes('bill_date between ? and ?') && params.length >= 3) {
         const from = params[1] || '1970-01-01';
         const to = params[2] || '2099-12-31';
-        list = list.filter(b => b.bill_date >= from && b.bill_date <= to);
+        list = list.filter(b => b.customer_id === custId && b.bill_date >= from && b.bill_date <= to);
+      } else {
+        let i = 0;
+        const hasAfter = lower.includes('bill_date >= ?');
+        const hasBefore = lower.includes('bill_date <= ?');
+        const hasCust = lower.includes('customer_id = ?');
+        const hasStatus = lower.includes('status = ?');
+
+        if (hasAfter && params[i] !== undefined) {
+          const from = params[i++];
+          list = list.filter(b => b.bill_date >= from);
+        }
+        if (hasBefore && params[i] !== undefined) {
+          const to = params[i++];
+          list = list.filter(b => b.bill_date <= to);
+        }
+        if (hasCust && params[i] !== undefined) {
+          const custId = Number(params[i++]);
+          list = list.filter(b => b.customer_id === custId);
+        }
+        if (hasStatus && params[i] !== undefined) {
+          const st = String(params[i++]).toUpperCase();
+          list = list.filter(b => (b.status || '').toUpperCase() === st);
+        }
       }
+
+      if (lower.includes('amount_pending > 0')) {
+        list = list.filter(b => Number(b.amount_pending) > 0);
+      }
+
       const enriched = list.map(b => {
         const cust = fallbackStore.customers.find(c => c.id === b.customer_id);
         const items = fallbackStore.bill_items.filter(bi => bi.bill_id === b.id);
@@ -535,7 +577,13 @@ function executeFallbackQuery(sql, params = []) {
           items_count: items.reduce((acc, it) => acc + (Number(it.qty) || 0), 0)
         };
       });
-      enriched.sort((a, b) => (b.bill_date || '').localeCompare(a.bill_date || '') || b.id - a.id);
+
+      if (lower.includes('order by bill_date asc')) {
+        enriched.sort((a, b) => (a.bill_date || '').localeCompare(b.bill_date || '') || a.id - b.id);
+      } else {
+        enriched.sort((a, b) => (b.bill_date || '').localeCompare(a.bill_date || '') || b.id - a.id);
+      }
+
       return [enriched, []];
     }
   }
@@ -903,6 +951,7 @@ const dbProxy = new Proxy({}, {
     if (prop === 'initDB') return initDB;
     if (prop === 'isFallback') return () => isUsingFallback;
     if (prop === 'checkDbHealth') return checkDbHealth;
+    if (prop === 'resetFallbackStore') return () => { fallbackStore = null; };
     if (pool && typeof pool[prop] === 'function') {
       return pool[prop].bind(pool);
     }

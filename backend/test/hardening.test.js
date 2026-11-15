@@ -1,3 +1,4 @@
+process.env.NODE_ENV = 'test';
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const request = require('http');
@@ -398,4 +399,83 @@ test('BUG-01: /api/auth/me explicitly returns 401 on invalid/expired token so fr
   } finally {
     server.close();
   }
+});
+
+// -------------------------------------------------------------
+// CLAUDE-BUG-01 & BUG-02: Embedded Fallback Query Routing & Filtering
+// -------------------------------------------------------------
+test('CLAUDE-BUG-01: GET /api/bills and customer transactions are not swallowed by sales chart handler', async () => {
+  const server = app.listen(0);
+
+  try {
+    const loginRes = await makeRequest(server, '/api/auth/login', 'POST', {
+      email: 'admin@shop.com',
+      password: 'admin123'
+    });
+    const token = loginRes.data.data.token;
+
+    // 1. GET /api/bills must return an array of actual bill objects, not sales chart { label, total, count }
+    const billsRes = await makeRequest(server, '/api/bills', 'GET', null, token);
+    assert.equal(billsRes.status, 200);
+    assert.equal(billsRes.data.success, true);
+    assert.ok(Array.isArray(billsRes.data.data));
+    assert.ok(billsRes.data.data.length > 0);
+    const firstBill = billsRes.data.data[0];
+    assert.ok(firstBill.bill_no, 'Bill object must have bill_no');
+    assert.ok(firstBill.total_amount !== undefined, 'Bill object must have total_amount');
+    assert.equal(firstBill.label, undefined, 'Bill object should not be a chart data group with label');
+
+    // 2. GET /api/customers/2/transactions must return customer transactions with bill details
+    const txRes = await makeRequest(server, '/api/customers/2/transactions', 'GET', null, token);
+    assert.equal(txRes.status, 200);
+    assert.equal(txRes.data.success, true);
+    assert.ok(Array.isArray(txRes.data.data));
+    if (txRes.data.data.length > 0) {
+      const firstTx = txRes.data.data[0];
+      assert.ok(firstTx.bill_no || firstTx.id, 'Transaction must contain bill identifier');
+      assert.equal(firstTx.label, undefined, 'Transaction should not be a chart object');
+    }
+  } finally {
+    server.close();
+  }
+});
+
+test('CLAUDE-BUG-02: GET /api/bills accurately applies customerId and status query parameters', async () => {
+  const server = app.listen(0);
+
+  try {
+    const loginRes = await makeRequest(server, '/api/auth/login', 'POST', {
+      email: 'admin@shop.com',
+      password: 'admin123'
+    });
+    const token = loginRes.data.data.token;
+
+    // Filter by customerId = 2
+    const custBillsRes = await makeRequest(server, '/api/bills?customerId=2', 'GET', null, token);
+    assert.equal(custBillsRes.status, 200);
+    assert.ok(Array.isArray(custBillsRes.data.data));
+    for (const b of custBillsRes.data.data) {
+      assert.equal(b.customer_id, 2);
+    }
+
+    // Filter by status = PAID
+    const paidBillsRes = await makeRequest(server, '/api/bills?status=PAID', 'GET', null, token);
+    assert.equal(paidBillsRes.status, 200);
+    assert.ok(Array.isArray(paidBillsRes.data.data));
+    for (const b of paidBillsRes.data.data) {
+      assert.equal(b.status, 'PAID');
+    }
+  } finally {
+    server.close();
+  }
+});
+
+// -------------------------------------------------------------
+// CLAUDE-BUG-03: Test suite isolation from .demo_db.json
+// -------------------------------------------------------------
+test('CLAUDE-BUG-03: Running tests does not persist or write to .demo_db.json on disk', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const diskPath = path.join(__dirname, '../.demo_db.json');
+  assert.equal(fs.existsSync(diskPath), false, '.demo_db.json should not exist on disk after test execution');
 });
