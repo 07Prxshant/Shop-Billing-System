@@ -78,13 +78,22 @@ app.use('/api/settings', settingRoutes);
 app.use('/api/reports', reportRoutes);
 
 // In production or unified hosting (e.g. Railway, Docker):
-// Serve compiled frontend SPA if frontend/dist exists
+// Serve compiled frontend files if frontend/dist exists
 const frontendDist = path.join(__dirname, '../../frontend/dist');
 if (fs.existsSync(frontendDist)) {
   app.use(express.static(frontendDist));
   app.get('*', (req, res, next) => {
     if (req.path.startsWith('/api') || req.path === '/health') {
       return next();
+    }
+    const cleanPath = req.path.replace(/^\//, '').replace(/\/$/, '');
+    const directHtml = path.join(frontendDist, `${cleanPath}.html`);
+    if (cleanPath && fs.existsSync(directHtml)) {
+      return res.sendFile(directHtml);
+    }
+    const indexInDir = path.join(frontendDist, cleanPath, 'index.html');
+    if (cleanPath && fs.existsSync(indexInDir)) {
+      return res.sendFile(indexInDir);
     }
     res.sendFile(path.join(frontendDist, 'index.html'));
   });

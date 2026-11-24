@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login - Shop Billing & Ledger System</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛒</text></svg>">
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    /* Dedicated Login Page Center Styling */
+    .login-container {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #312e81 100%);
+    }
+    .login-card {
+      width: 100%;
+      max-width: 440px;
+      background: #ffffff;
+      border-radius: var(--radius-xl);
+      padding: 36px 32px;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.1);
+    }
+    .login-brand {
+      text-align: center;
+      margin-bottom: 28px;
+    }
+    .brand-icon-box {
+      width: 64px;
+      height: 64px;
+      background: var(--primary);
+      color: #ffffff;
+      border-radius: var(--radius-lg);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 32px;
+      box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.4);
+      margin-bottom: 12px;
+    }
+    .login-title {
+      font-size: 22px;
+      font-weight: 800;
+      color: #0f172a;
+    }
+    .login-desc {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+    .demo-box {
+      background: #f8fafc;
+      border: 1px dashed var(--primary-border);
+      padding: 12px 14px;
+      border-radius: var(--radius-md);
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .demo-info {
+      font-size: 12px;
+      color: var(--text-muted);
+      line-height: 1.4;
+    }
+    .demo-info strong {
+      color: var(--text-main);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="login-container">
+    <div class="login-card">
+      <div class="login-brand">
+        <div class="brand-icon-box">🛒</div>
+        <h1 class="login-title">Shop Billing System</h1>
+        <p class="login-desc">POS Invoicing, Stock & Customer Ledger Management</p>
+      </div>
+
+      <!-- Quick Demo Credentials Box -->
+      <div class="demo-box">
+        <div class="demo-info">
+          <div>Email: <strong>admin@shop.com</strong></div>
+          <div>Password: <strong>admin123</strong></div>
+        </div>
+        <button type="button" id="demo-fill-btn" class="btn btn-sm btn-secondary" title="Click to fill test credentials">
+          ⚡ Auto-fill
+        </button>
+      </div>
+
+      <!-- Error Alert Message -->
+      <div id="error-box" class="alert alert-danger" style="display: none;">
+        <span>⚠️</span>
+        <span id="error-text">Invalid email or password</span>
+      </div>
+
+      <!-- Sign In Form -->
+      <form id="login-form">
+        <div class="form-group">
+          <label class="form-label" for="email">Email Address</label>
+          <input 
+            type="email" 
+            id="email" 
+            class="form-control" 
+            placeholder="admin@shop.com" 
+            required 
+            autocomplete="email"
+          >
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="password">Password</label>
+          <input 
+            type="password" 
+            id="password" 
+            class="form-control" 
+            placeholder="••••••••" 
+            required 
+            autocomplete="current-password"
+          >
+        </div>
+
+        <button type="submit" id="submit-btn" class="btn btn-primary btn-lg" style="width: 100%; margin-top: 10px;">
+          Sign In to Shop
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="/js/api.js"></script>
+  <script src="/js/auth.js"></script>
+  <script src="/js/login.js"></script>
+</body>
+</html>

@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Customers Directory - Shop Billing System</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛒</text></svg>">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+  <div class="app-container">
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-logo">🛒</div>
+        <div class="sidebar-title">
+          <h2>Shop Billing</h2>
+          <p>POS & Customer Ledger</p>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <a href="index.html" class="nav-link">
+          <span class="nav-icon">📊</span>
+          <span>Dashboard</span>
+        </a>
+        <a href="billing.html" class="nav-link">
+          <span class="nav-icon">🛒</span>
+          <span>New Bill</span>
+        </a>
+        <a href="bills.html" class="nav-link">
+          <span class="nav-icon">🧾</span>
+          <span>Invoices / Bills</span>
+        </a>
+        <a href="products.html" class="nav-link">
+          <span class="nav-icon">📦</span>
+          <span>Products</span>
+        </a>
+        <a href="customers.html" class="nav-link active">
+          <span class="nav-icon">👥</span>
+          <span>Customers</span>
+        </a>
+        <a href="reports.html" class="nav-link">
+          <span class="nav-icon">📈</span>
+          <span>Sales Reports</span>
+        </a>
+        <a href="settings.html" class="nav-link">
+          <span class="nav-icon">⚙️</span>
+          <span>Shop Settings</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="user-badge">
+          <div class="user-info">
+            <div class="user-name current-user-name">Shop Admin</div>
+            <div class="user-role current-user-email">admin@shop.com</div>
+          </div>
+          <button class="btn-logout" title="Sign Out">🚪</button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content Wrapper -->
+    <div class="main-wrapper">
+      <!-- Top Navigation Header -->
+      <header class="topbar">
+        <div class="topbar-left">
+          <button id="menu-toggle-btn" class="menu-toggle" aria-label="Toggle Navigation">☰</button>
+          <div class="topbar-date">
+            <span>📅</span>
+            <span id="current-date-display">Today</span>
+          </div>
+        </div>
+        <div class="topbar-right">
+          <button type="button" class="btn btn-primary btn-sm" onclick="openAddCustomerModal()">
+            <span>+</span>
+            <span>Add Customer</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- Main Page Container -->
+      <main class="page-container">
+        <!-- Page Header -->
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">
+              <span>👥</span>
+              <span>Customer Ledger & Khata Directory</span>
+            </h1>
+            <p class="page-subtitle">Track individual customer lifetime purchases, payment histories, and credit balances.</p>
+          </div>
+          <div>
+            <button type="button" class="btn btn-primary" onclick="openAddCustomerModal()">
+              <span>+</span>
+              <span>Add New Customer</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Filter Bar -->
+        <div class="filter-bar">
+          <div class="filter-item">
+            <input 
+              type="text" 
+              id="search-input" 
+              class="filter-input" 
+              placeholder="🔍 Search customers by name, phone, address..." 
+              style="min-width: 320px;"
+            >
+          </div>
+
+          <div class="filter-item" style="margin-left: 10px;">
+            <label style="display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; cursor: pointer;">
+              <input type="checkbox" id="filter-pending">
+              <span>Only with Pending Balance</span>
+            </label>
+          </div>
+
+          <div style="margin-left: auto;">
+            <span id="customers-count" class="badge badge-category">0 customers</span>
+          </div>
+        </div>
+
+        <!-- Customers Table Card -->
+        <div class="card" style="padding: 0; overflow: hidden;">
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th style="width: 30px;">#</th>
+                  <th>Customer Name</th>
+                  <th>Phone Number</th>
+                  <th>Address</th>
+                  <th>Total Billed</th>
+                  <th>Total Paid</th>
+                  <th>Pending Due</th>
+                  <th style="text-align: center;">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="customers-tbody">
+                <!-- Dynamically populated via JS -->
+              </tbody>
+            </table>
+          </div>
+
+          <div id="customers-loading" style="text-align: center; padding: 40px; color: var(--text-muted);">
+            ⌛ Loading customer directory...
+          </div>
+
+          <div id="customers-empty" style="display: none; text-align: center; padding: 50px 20px; color: var(--text-muted);">
+            <div style="font-size: 32px; margin-bottom: 8px;">👥</div>
+            <p style="font-weight: 600;">No customers match your search criteria.</p>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- Add / Edit Customer Modal -->
+  <div id="customer-modal" class="modal-overlay">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="modal-title" class="modal-title">Add New Customer</h3>
+        <button type="button" class="modal-close" onclick="closeCustomerModal()">✕</button>
+      </div>
+
+      <form id="customer-form">
+        <div class="modal-body">
+          <div id="modal-error" class="alert alert-danger" style="display: none;"></div>
+
+          <div class="form-group">
+            <label class="form-label" for="cust-name">Customer Name *</label>
+            <input type="text" id="cust-name" class="form-control" placeholder="e.g. Rahul Sharma" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="cust-phone">Phone Number</label>
+            <input type="tel" id="cust-phone" class="form-control" placeholder="e.g. 9876543210">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="cust-address">Shop / Residential Address</label>
+            <textarea id="cust-address" class="form-control" rows="3" placeholder="e.g. B-12, Sector 4, Rohini, New Delhi"></textarea>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeCustomerModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Customer</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Delete Customer Modal -->
+  <div id="delete-modal" class="modal-overlay">
+    <div class="modal-content" style="max-width: 400px; text-align: center;">
+      <div class="modal-body" style="padding: 28px 24px;">
+        <div style="font-size: 36px; margin-bottom: 12px;">⚠️</div>
+        <h3 style="font-size: 18px; font-weight: 800; color: #0f172a; margin-bottom: 8px;">Delete Customer?</h3>
+        <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 20px;">
+          Are you sure you want to delete <strong id="delete-cust-name">Customer</strong>? This will archive their account history.
+        </p>
+        <div style="display: flex; gap: 10px; justify-content: center;">
+          <button type="button" class="btn btn-secondary" onclick="closeDeleteModal()">Cancel</button>
+          <button type="button" class="btn btn-danger" onclick="confirmDeleteCustomer()">Yes, Delete</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="/js/api.js"></script>
+  <script src="/js/auth.js"></script>
+  <script src="/js/layout.js"></script>
+  <script src="/js/customers.js"></script>
+</body>
+</html>

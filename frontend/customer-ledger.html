@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Customer Ledger & Statement - Shop Billing System</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛒</text></svg>">
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    .tab-nav {
+      display: flex;
+      gap: 8px;
+      border-bottom: 2px solid var(--border-color);
+      margin-bottom: 20px;
+    }
+    .tab-btn {
+      padding: 10px 18px;
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text-muted);
+      background: transparent;
+      border: none;
+      border-bottom: 3px solid transparent;
+      cursor: pointer;
+      transition: var(--transition);
+      margin-bottom: -2px;
+    }
+    .tab-btn:hover {
+      color: var(--text-main);
+    }
+    .tab-btn.active {
+      color: var(--primary);
+      border-bottom-color: var(--primary);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="app-container">
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-logo">🛒</div>
+        <div class="sidebar-title">
+          <h2>Shop Billing</h2>
+          <p>POS & Customer Ledger</p>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <a href="index.html" class="nav-link">
+          <span class="nav-icon">📊</span>
+          <span>Dashboard</span>
+        </a>
+        <a href="billing.html" class="nav-link">
+          <span class="nav-icon">🛒</span>
+          <span>New Bill</span>
+        </a>
+        <a href="bills.html" class="nav-link">
+          <span class="nav-icon">🧾</span>
+          <span>Invoices / Bills</span>
+        </a>
+        <a href="products.html" class="nav-link">
+          <span class="nav-icon">📦</span>
+          <span>Products</span>
+        </a>
+        <a href="customers.html" class="nav-link active">
+          <span class="nav-icon">👥</span>
+          <span>Customers</span>
+        </a>
+        <a href="reports.html" class="nav-link">
+          <span class="nav-icon">📈</span>
+          <span>Sales Reports</span>
+        </a>
+        <a href="settings.html" class="nav-link">
+          <span class="nav-icon">⚙️</span>
+          <span>Shop Settings</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="user-badge">
+          <div class="user-info">
+            <div class="user-name current-user-name">Shop Admin</div>
+            <div class="user-role current-user-email">admin@shop.com</div>
+          </div>
+          <button class="btn-logout" title="Sign Out">🚪</button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content Wrapper -->
+    <div class="main-wrapper">
+      <!-- Top Navigation Header -->
+      <header class="topbar">
+        <div class="topbar-left">
+          <button id="menu-toggle-btn" class="menu-toggle" aria-label="Toggle Navigation">☰</button>
+          <div class="topbar-date">
+            <a href="customers.html" style="color: var(--primary); font-weight: 600; font-size: 13px;">&larr; Back to Customers</a>
+          </div>
+        </div>
+        <div class="topbar-right">
+          <button type="button" class="btn btn-success btn-sm" onclick="openRecordPaymentModal()">
+            <span>💵</span>
+            <span>Record Payment</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- Main Page Container -->
+      <main class="page-container">
+        <!-- Loading Indicator -->
+        <div id="ledger-loading" style="text-align: center; padding: 60px 0; color: var(--text-muted);">
+          ⌛ Loading customer account ledger...
+        </div>
+
+        <div id="ledger-content" style="display: none;">
+          <!-- Customer Profile Card -->
+          <div class="card" style="padding: 24px; margin-bottom: 24px;">
+            <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px;">
+              <div>
+                <span class="badge badge-category" id="cust-created" style="margin-bottom: 6px;">Customer</span>
+                <h1 id="cust-name" style="font-size: 26px; font-weight: 900; color: #0f172a; letter-spacing: -0.5px;">-</h1>
+                <div style="display: flex; gap: 16px; margin-top: 6px; font-size: 13px; color: var(--text-muted);">
+                  <span id="cust-phone">📞 -</span>
+                  <span id="cust-address">📍 -</span>
+                </div>
+              </div>
+
+              <div style="display: flex; gap: 10px;">
+                <button type="button" class="btn btn-primary" onclick="openRecordPaymentModal()">
+                  <span>💵</span>
+                  <span>Record Payment</span>
+                </button>
+                <button type="button" class="btn btn-outline" onclick="printStatement()">
+                  <span>🖨️</span>
+                  <span>Print Statement</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Summary KPI Cards -->
+          <div class="stat-grid">
+            <div class="stat-card">
+              <div class="stat-info">
+                <div class="stat-label">Total Billed</div>
+                <div id="kpi-billed" class="stat-value">Rs. 0.00</div>
+                <div class="stat-desc">Lifetime purchases</div>
+              </div>
+              <div class="stat-icon stat-icon-indigo">💳</div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-info">
+                <div class="stat-label">Total Paid</div>
+                <div id="kpi-paid" class="stat-value" style="color: var(--success-text);">Rs. 0.00</div>
+                <div class="stat-desc">Collections received</div>
+              </div>
+              <div class="stat-icon stat-icon-emerald">✓</div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-info">
+                <div class="stat-label">Pending Balance</div>
+                <div id="kpi-pending" class="stat-value" style="color: var(--danger-text);">Rs. 0.00</div>
+                <div class="stat-desc">Current outstanding credit</div>
+              </div>
+              <div class="stat-icon stat-icon-rose">⏳</div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-info">
+                <div class="stat-label">Invoices Count</div>
+                <div id="kpi-bills-count" class="stat-value">0</div>
+                <div class="stat-desc">Total sales bills</div>
+              </div>
+              <div class="stat-icon stat-icon-blue">🧾</div>
+            </div>
+          </div>
+
+          <!-- Filters & Period Presets Bar -->
+          <div class="filter-bar">
+            <div style="display: flex; gap: 4px; flex-wrap: wrap;">
+              <button type="button" class="btn btn-sm btn-outline" onclick="applyPreset('all')">All Time</button>
+              <button type="button" class="btn btn-sm btn-outline" onclick="applyPreset('today')">Today</button>
+              <button type="button" class="btn btn-sm btn-outline" onclick="applyPreset('this_month')">This Month</button>
+              <button type="button" class="btn btn-sm btn-outline" onclick="applyPreset('last_month')">Last Month</button>
+            </div>
+
+            <div style="display: flex; gap: 8px; align-items: center; margin-left: 10px;">
+              <span style="font-size: 12px; color: var(--text-muted);">From:</span>
+              <input type="date" id="filter-from" class="filter-input" style="padding: 4px 8px;">
+              <span style="font-size: 12px; color: var(--text-muted);">To:</span>
+              <input type="date" id="filter-to" class="filter-input" style="padding: 4px 8px;">
+            </div>
+
+            <div style="margin-left: auto; display: flex; gap: 6px;">
+              <button type="button" id="view-daily-btn" class="btn btn-sm btn-primary" onclick="setViewMode('daily')">Daily View</button>
+              <button type="button" id="view-monthly-btn" class="btn btn-sm btn-outline" onclick="setViewMode('monthly')">Monthly View</button>
+            </div>
+          </div>
+
+          <!-- Tabs Navigation -->
+          <div class="tab-nav">
+            <button type="button" id="tab-bills" class="tab-btn active" onclick="switchTab('bills')">
+              🧾 Sales Invoices
+            </button>
+            <button type="button" id="tab-payments" class="tab-btn" onclick="switchTab('payments')">
+              💵 Payment History
+            </button>
+          </div>
+
+          <!-- Invoices Tab Container -->
+          <div id="bills-table-container" class="card" style="padding: 0; overflow: hidden;">
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Invoice / Period</th>
+                    <th>Date / Invoices</th>
+                    <th>Total Billed</th>
+                    <th>Amount Paid</th>
+                    <th>Pending Due</th>
+                    <th>Status</th>
+                    <th>Payment Mode</th>
+                    <th style="text-align: right;">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="bills-tbody">
+                  <!-- Populated via JS -->
+                </tbody>
+              </table>
+            </div>
+
+            <div id="bills-empty" style="display: none; text-align: center; padding: 40px; color: var(--text-muted);">
+              No invoices found for this period.
+            </div>
+          </div>
+
+          <!-- Payments Tab Container -->
+          <div id="payments-table-container" class="card" style="display: none; padding: 0; overflow: hidden;">
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th style="width: 30px;">#</th>
+                    <th>Payment Date</th>
+                    <th>Amount Paid</th>
+                    <th>Payment Mode</th>
+                    <th>Applied To</th>
+                    <th>Notes / Reference</th>
+                    <th style="text-align: right;">Delete</th>
+                  </tr>
+                </thead>
+                <tbody id="payments-tbody">
+                  <!-- Populated via JS -->
+                </tbody>
+              </table>
+            </div>
+
+            <div id="payments-empty" style="display: none; text-align: center; padding: 40px; color: var(--text-muted);">
+              No payments recorded yet for this customer.
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- Record Payment Modal -->
+  <div id="payment-modal" class="modal-overlay">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title">
+          <span>💵</span>
+          <span>Record Customer Payment</span>
+        </h3>
+        <button type="button" class="modal-close" onclick="closePaymentModal()">✕</button>
+      </div>
+
+      <form id="payment-form">
+        <div class="modal-body">
+          <div id="pay-error" class="alert alert-danger" style="display: none;"></div>
+
+          <div style="background: #fffbeb; border: 1px solid #fde68a; border-radius: var(--radius-md); padding: 12px 16px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-size: 13px; font-weight: 600; color: #92400e;">Current Pending Balance:</span>
+            <span id="pay-due-balance" style="font-size: 16px; font-weight: 800; color: #b45309;">Rs. 0.00</span>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="pay-amount">Amount Received (Rs.) *</label>
+            <input type="number" id="pay-amount" class="form-control" placeholder="0.00" min="0.01" step="0.01" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="pay-bill-select">Apply Payment To</label>
+            <select id="pay-bill-select" class="form-control">
+              <option value="">Oldest Unpaid Bills First (FIFO)</option>
+            </select>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="pay-date">Payment Date *</label>
+              <input type="date" id="pay-date" class="form-control" required>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="pay-mode">Payment Mode *</label>
+              <select id="pay-mode" class="form-control">
+                <option value="CASH">Cash</option>
+                <option value="UPI">UPI (GPay / PhonePe / Paytm)</option>
+                <option value="CARD">Debit / Credit Card</option>
+                <option value="CHEQUE">Bank Cheque</option>
+                <option value="BANK_TRANSFER">Bank Transfer (NEFT/IMPS)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="pay-notes">Notes / Reference No</label>
+            <input type="text" id="pay-notes" class="form-control" placeholder="e.g. Cleared pending dues via UPI">
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closePaymentModal()">Cancel</button>
+          <button type="submit" class="btn btn-success">Record Payment</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="/js/api.js"></script>
+  <script src="/js/auth.js"></script>
+  <script src="/js/layout.js"></script>
+  <script src="/js/pdf.js"></script>
+  <script src="/js/ledger.js"></script>
+</body>
+</html>

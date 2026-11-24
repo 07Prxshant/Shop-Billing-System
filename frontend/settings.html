@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Shop Settings - Shop Billing System</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛒</text></svg>">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+  <div class="app-container">
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-logo">🛒</div>
+        <div class="sidebar-title">
+          <h2>Shop Billing</h2>
+          <p>POS & Customer Ledger</p>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <a href="index.html" class="nav-link">
+          <span class="nav-icon">📊</span>
+          <span>Dashboard</span>
+        </a>
+        <a href="billing.html" class="nav-link">
+          <span class="nav-icon">🛒</span>
+          <span>New Bill</span>
+        </a>
+        <a href="bills.html" class="nav-link">
+          <span class="nav-icon">🧾</span>
+          <span>Invoices / Bills</span>
+        </a>
+        <a href="products.html" class="nav-link">
+          <span class="nav-icon">📦</span>
+          <span>Products</span>
+        </a>
+        <a href="customers.html" class="nav-link">
+          <span class="nav-icon">👥</span>
+          <span>Customers</span>
+        </a>
+        <a href="reports.html" class="nav-link">
+          <span class="nav-icon">📈</span>
+          <span>Sales Reports</span>
+        </a>
+        <a href="settings.html" class="nav-link active">
+          <span class="nav-icon">⚙️</span>
+          <span>Shop Settings</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="user-badge">
+          <div class="user-info">
+            <div class="user-name current-user-name">Shop Admin</div>
+            <div class="user-role current-user-email">admin@shop.com</div>
+          </div>
+          <button class="btn-logout" title="Sign Out">🚪</button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content Wrapper -->
+    <div class="main-wrapper">
+      <!-- Top Navigation Header -->
+      <header class="topbar">
+        <div class="topbar-left">
+          <button id="menu-toggle-btn" class="menu-toggle" aria-label="Toggle Navigation">☰</button>
+          <div class="topbar-date">
+            <span>📅</span>
+            <span id="current-date-display">Today</span>
+          </div>
+        </div>
+      </header>
+
+      <!-- Main Page Container -->
+      <main class="page-container">
+        <!-- Page Header -->
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">
+              <span>⚙️</span>
+              <span>Shop Profile & Billing Settings</span>
+            </h1>
+            <p class="page-subtitle">Configure business identity, address, contact phone, GSTIN number, and invoice terms.</p>
+          </div>
+        </div>
+
+        <!-- Alert Notification -->
+        <div id="settings-alert" class="alert alert-success" style="display: none; max-width: 800px;"></div>
+
+        <!-- Loading Indicator -->
+        <div id="settings-loading" style="text-align: center; padding: 40px; color: var(--text-muted);">
+          ⌛ Loading shop configuration...
+        </div>
+
+        <!-- Settings Form & Preview (2-Column) -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 24px;">
+          <!-- Left: Settings Form -->
+          <div class="card">
+            <form id="settings-form" style="display: none;">
+              <div class="form-group">
+                <label class="form-label" for="shop-name">Shop / Business Name *</label>
+                <input type="text" id="shop-name" class="form-control" placeholder="e.g. Vikas Super Market" required>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="shop-address">Store Address *</label>
+                <textarea id="shop-address" class="form-control" rows="2" placeholder="e.g. 124 Main Street, Commercial Hub, Mumbai" required></textarea>
+              </div>
+
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label" for="shop-phone">Contact Phone *</label>
+                  <input type="tel" id="shop-phone" class="form-control" placeholder="e.g. 022-28471920" required>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label" for="shop-gst">GSTIN Tax Number</label>
+                  <input type="text" id="shop-gst" class="form-control" placeholder="e.g. GSTIN27AABCU9603R1ZM">
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="shop-footer">Invoice Footer Terms & Return Policy</label>
+                <textarea id="shop-footer" class="form-control" rows="2" placeholder="e.g. Thank you for shopping with us! Goods once sold can be exchanged within 7 days."></textarea>
+              </div>
+
+              <button type="submit" id="save-settings-btn" class="btn btn-primary btn-lg" style="margin-top: 10px;">
+                Save Shop Settings
+              </button>
+            </form>
+          </div>
+
+          <!-- Right: Live Invoice Header Preview -->
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">
+                <span>👁️</span>
+                <span>Live Invoice Header Preview</span>
+              </h3>
+            </div>
+
+            <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 16px;">
+              This is how your business details will look at the top of customer tax invoices and account statements:
+            </p>
+
+            <div style="background: #f8fafc; border: 2px dashed var(--border-color); border-radius: var(--radius-md); padding: 20px; font-family: monospace;">
+              <div style="text-align: center; border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 12px;">
+                <h2 id="prev-shop-name" style="font-size: 18px; font-weight: 900; color: #0f172a; margin-bottom: 4px;">Shop Name</h2>
+                <div id="prev-shop-details" style="font-size: 11px; color: var(--text-muted);">
+                  Address | Phone | GSTIN
+                </div>
+              </div>
+
+              <div style="text-align: center; font-size: 12px; font-weight: 700; color: var(--primary); letter-spacing: 1px; margin-bottom: 16px;">
+                TAX INVOICE / CASH MEMO
+              </div>
+
+              <div style="font-size: 11px; color: #64748b; line-height: 1.6; border-top: 1px dotted var(--border-color); padding-top: 12px;">
+                <div style="display: flex; justify-content: space-between;">
+                  <span>Invoice No: INV-XXXX</span>
+                  <span>Date: DD/MM/YYYY</span>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                  <span>Customer: Rahul Sharma</span>
+                  <span>Mode: CASH</span>
+                </div>
+              </div>
+
+              <div id="prev-shop-footer" style="text-align: center; font-size: 10px; color: var(--text-muted); font-style: italic; margin-top: 20px; border-top: 1px dashed var(--border-color); padding-top: 8px;">
+                "Thank you for shopping with us!"
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="/js/api.js"></script>
+  <script src="/js/auth.js"></script>
+  <script src="/js/layout.js"></script>
+  <script src="/js/settings.js"></script>
+</body>
+</html>

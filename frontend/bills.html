@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Invoices & Bills - Shop Billing System</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛒</text></svg>">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+  <div class="app-container">
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-logo">🛒</div>
+        <div class="sidebar-title">
+          <h2>Shop Billing</h2>
+          <p>POS & Customer Ledger</p>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <a href="index.html" class="nav-link">
+          <span class="nav-icon">📊</span>
+          <span>Dashboard</span>
+        </a>
+        <a href="billing.html" class="nav-link">
+          <span class="nav-icon">🛒</span>
+          <span>New Bill</span>
+        </a>
+        <a href="bills.html" class="nav-link active">
+          <span class="nav-icon">🧾</span>
+          <span>Invoices / Bills</span>
+        </a>
+        <a href="products.html" class="nav-link">
+          <span class="nav-icon">📦</span>
+          <span>Products</span>
+        </a>
+        <a href="customers.html" class="nav-link">
+          <span class="nav-icon">👥</span>
+          <span>Customers</span>
+        </a>
+        <a href="reports.html" class="nav-link">
+          <span class="nav-icon">📈</span>
+          <span>Sales Reports</span>
+        </a>
+        <a href="settings.html" class="nav-link">
+          <span class="nav-icon">⚙️</span>
+          <span>Shop Settings</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="user-badge">
+          <div class="user-info">
+            <div class="user-name current-user-name">Shop Admin</div>
+            <div class="user-role current-user-email">admin@shop.com</div>
+          </div>
+          <button class="btn-logout" title="Sign Out">🚪</button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content Wrapper -->
+    <div class="main-wrapper">
+      <!-- Top Navigation Header -->
+      <header class="topbar">
+        <div class="topbar-left">
+          <button id="menu-toggle-btn" class="menu-toggle" aria-label="Toggle Navigation">☰</button>
+          <div class="topbar-date">
+            <span>📅</span>
+            <span id="current-date-display">Today</span>
+          </div>
+        </div>
+        <div class="topbar-right">
+          <a href="billing.html" class="btn btn-primary btn-sm">
+            <span>+</span>
+            <span>New Sale</span>
+          </a>
+        </div>
+      </header>
+
+      <!-- Main Page Container -->
+      <main class="page-container">
+        <!-- Page Header -->
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">
+              <span>🧾</span>
+              <span>Sales Invoices & Bills</span>
+            </h1>
+            <p class="page-subtitle">View, search, print, or manage past customer sales and payment status.</p>
+          </div>
+          <div>
+            <a href="billing.html" class="btn btn-primary">
+              <span>+</span>
+              <span>Create New Bill</span>
+            </a>
+          </div>
+        </div>
+
+        <!-- Filter Bar -->
+        <div class="filter-bar">
+          <div class="filter-item">
+            <label class="form-label" style="margin-bottom: 0;">From:</label>
+            <input type="date" id="filter-from" class="filter-input">
+          </div>
+
+          <div class="filter-item">
+            <label class="form-label" style="margin-bottom: 0;">To:</label>
+            <input type="date" id="filter-to" class="filter-input">
+          </div>
+
+          <div class="filter-item">
+            <label class="form-label" style="margin-bottom: 0;">Customer:</label>
+            <select id="filter-customer" class="filter-input" style="min-width: 160px;">
+              <option value="">All Customers</option>
+            </select>
+          </div>
+
+          <div class="filter-item">
+            <label class="form-label" style="margin-bottom: 0;">Status:</label>
+            <select id="filter-status" class="filter-input">
+              <option value="">All Statuses</option>
+              <option value="PAID">PAID</option>
+              <option value="PARTIAL">PARTIAL</option>
+              <option value="UNPAID">UNPAID</option>
+            </select>
+          </div>
+
+          <button type="button" id="filter-reset-btn" class="btn btn-outline btn-sm">
+            Reset Filters
+          </button>
+
+          <div style="margin-left: auto; display: flex; align-items: center; gap: 12px; font-size: 13px;">
+            <span id="bills-count-badge" class="badge badge-category">0 Invoices</span>
+            <span>Total: <strong id="bills-total-revenue" style="color: var(--primary);">Rs. 0.00</strong></span>
+          </div>
+        </div>
+
+        <!-- Invoices Data Table Card -->
+        <div class="card" style="padding: 0; overflow: hidden;">
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Invoice No</th>
+                  <th>Date</th>
+                  <th>Customer</th>
+                  <th style="text-align: center;">Items</th>
+                  <th>Total Amount</th>
+                  <th>Paid</th>
+                  <th>Pending</th>
+                  <th>Status</th>
+                  <th>Mode</th>
+                  <th style="text-align: center;">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="bills-tbody">
+                <!-- Dynamically populated via JS -->
+              </tbody>
+            </table>
+          </div>
+
+          <div id="bills-loading" style="text-align: center; padding: 40px; color: var(--text-muted);">
+            ⌛ Loading sales invoices...
+          </div>
+
+          <div id="bills-empty" style="display: none; text-align: center; padding: 50px 20px; color: var(--text-muted);">
+            <div style="font-size: 32px; margin-bottom: 8px;">🧾</div>
+            <p style="font-weight: 600;">No invoices match your selected filters.</p>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- View Invoice Details Modal -->
+  <div id="view-bill-modal" class="modal-overlay">
+    <div class="modal-content modal-content-lg">
+      <div class="modal-header">
+        <h3 class="modal-title">
+          <span>🧾</span>
+          <span>Tax Invoice Details</span>
+        </h3>
+        <button type="button" class="modal-close" onclick="closeViewModal()">✕</button>
+      </div>
+
+      <div class="modal-body print-area">
+        <!-- Invoice Header Info -->
+        <div style="display: flex; justify-content: space-between; border-bottom: 2px solid var(--border-color); padding-bottom: 16px; margin-bottom: 16px;">
+          <div>
+            <div style="font-size: 18px; font-weight: 800; color: #0f172a;" id="modal-invoice-no">INV-0000</div>
+            <div style="font-size: 13px; color: var(--text-muted);">Date: <span id="modal-invoice-date" style="font-weight: 600; color: var(--text-main);">-</span></div>
+            <div style="font-size: 13px; color: var(--text-muted);">Payment: <span id="modal-invoice-mode" style="font-weight: 600; color: var(--text-main);">-</span></div>
+          </div>
+          <div style="text-align: right;">
+            <div style="font-size: 14px; font-weight: 700; color: #0f172a;" id="modal-invoice-cust-name">-</div>
+            <div style="font-size: 12px; color: var(--text-muted);" id="modal-invoice-cust-phone"></div>
+            <div style="font-size: 12px; color: var(--text-muted);" id="modal-invoice-cust-addr"></div>
+            <div style="margin-top: 6px;"><span id="modal-invoice-status" class="badge badge-paid">PAID</span></div>
+          </div>
+        </div>
+
+        <!-- Invoice Items Table -->
+        <div class="table-responsive" style="margin-bottom: 16px;">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th style="width: 30px;">#</th>
+                <th>Item Description</th>
+                <th>Rate</th>
+                <th>Qty</th>
+                <th>GST %</th>
+                <th style="text-align: right;">Amount</th>
+              </tr>
+            </thead>
+            <tbody id="modal-invoice-items">
+              <!-- Dynamically populated via JS -->
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Summary Totals -->
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; background: #f8fafc; padding: 16px; border-radius: var(--radius-md); border: 1px solid var(--border-color);">
+          <div style="max-width: 50%;">
+            <div style="font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Notes:</div>
+            <div id="modal-invoice-notes" style="font-size: 13px; color: var(--text-main); margin-top: 4px;">None</div>
+          </div>
+          <div style="width: 240px; font-size: 13px;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+              <span style="color: var(--text-muted);">Subtotal:</span>
+              <strong id="modal-invoice-subtotal">Rs. 0.00</strong>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+              <span style="color: var(--text-muted);">Discount:</span>
+              <strong id="modal-invoice-discount">Rs. 0.00</strong>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+              <span style="color: var(--text-muted);">GST Tax:</span>
+              <strong id="modal-invoice-tax">Rs. 0.00</strong>
+            </div>
+            <div style="display: flex; justify-content: space-between; border-top: 2px dashed var(--border-color); padding-top: 8px; font-size: 16px; font-weight: 800; color: var(--primary);">
+              <span>Total:</span>
+              <span id="modal-invoice-total">Rs. 0.00</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; color: var(--success); font-weight: 600; margin-top: 4px;">
+              <span>Paid:</span>
+              <span id="modal-invoice-paid">Rs. 0.00</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; color: var(--danger-text); font-weight: 700; margin-top: 2px;">
+              <span>Pending:</span>
+              <span id="modal-invoice-pending">Rs. 0.00</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer no-print">
+        <button type="button" class="btn btn-secondary" onclick="closeViewModal()">Close</button>
+        <button type="button" id="modal-print-btn" class="btn btn-primary">
+          <span>🖨️</span>
+          <span>Print Tax Invoice</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Delete Bill Confirmation Modal -->
+  <div id="delete-bill-modal" class="modal-overlay">
+    <div class="modal-content" style="max-width: 400px; text-align: center;">
+      <div class="modal-body" style="padding: 28px 24px;">
+        <div style="font-size: 36px; margin-bottom: 12px;">⚠️</div>
+        <h3 style="font-size: 18px; font-weight: 800; color: #0f172a; margin-bottom: 8px;">Delete Invoice?</h3>
+        <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 20px;">
+          Are you sure you want to delete invoice <strong id="delete-bill-no">INV-0000</strong>? This will restore inventory stock.
+        </p>
+        <div style="display: flex; gap: 10px; justify-content: center;">
+          <button type="button" class="btn btn-secondary" onclick="closeDeleteModal()">Cancel</button>
+          <button type="button" class="btn btn-danger" onclick="confirmDelete()">Yes, Delete</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="/js/api.js"></script>
+  <script src="/js/auth.js"></script>
+  <script src="/js/layout.js"></script>
+  <script src="/js/pdf.js"></script>
+  <script src="/js/bills.js"></script>
+</body>
+</html>

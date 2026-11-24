@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>New Bill / POS Invoicing - Shop Billing System</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛒</text></svg>">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+  <div class="app-container">
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-logo">🛒</div>
+        <div class="sidebar-title">
+          <h2>Shop Billing</h2>
+          <p>POS & Customer Ledger</p>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <a href="index.html" class="nav-link">
+          <span class="nav-icon">📊</span>
+          <span>Dashboard</span>
+        </a>
+        <a href="billing.html" class="nav-link active">
+          <span class="nav-icon">🛒</span>
+          <span>New Bill</span>
+        </a>
+        <a href="bills.html" class="nav-link">
+          <span class="nav-icon">🧾</span>
+          <span>Invoices / Bills</span>
+        </a>
+        <a href="products.html" class="nav-link">
+          <span class="nav-icon">📦</span>
+          <span>Products</span>
+        </a>
+        <a href="customers.html" class="nav-link">
+          <span class="nav-icon">👥</span>
+          <span>Customers</span>
+        </a>
+        <a href="reports.html" class="nav-link">
+          <span class="nav-icon">📈</span>
+          <span>Sales Reports</span>
+        </a>
+        <a href="settings.html" class="nav-link">
+          <span class="nav-icon">⚙️</span>
+          <span>Shop Settings</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="user-badge">
+          <div class="user-info">
+            <div class="user-name current-user-name">Shop Admin</div>
+            <div class="user-role current-user-email">admin@shop.com</div>
+          </div>
+          <button class="btn-logout" title="Sign Out">🚪</button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content Wrapper -->
+    <div class="main-wrapper">
+      <!-- Top Navigation Header -->
+      <header class="topbar">
+        <div class="topbar-left">
+          <button id="menu-toggle-btn" class="menu-toggle" aria-label="Toggle Navigation">☰</button>
+          <div class="topbar-date">
+            <span>📅</span>
+            <span id="current-date-display">Today</span>
+          </div>
+        </div>
+        <div class="topbar-right">
+          <a href="bills.html" class="btn btn-secondary btn-sm">
+            <span>🧾</span>
+            <span>View All Invoices</span>
+          </a>
+        </div>
+      </header>
+
+      <!-- Main Page Container -->
+      <main class="page-container">
+        <!-- Page Header -->
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">
+              <span>🛒</span>
+              <span>Point of Sale (POS) Billing</span>
+            </h1>
+            <p class="page-subtitle">Select customer, add products to cart, and generate instant tax invoices.</p>
+          </div>
+        </div>
+
+        <!-- 2-Column POS Billing Layout -->
+        <div class="billing-layout">
+          <!-- Left Column: Customer & Product Selection + Cart -->
+          <div>
+            <!-- Customer & Invoice Metadata Card -->
+            <div class="card" style="padding: 18px 20px; margin-bottom: 20px;">
+              <div class="form-row">
+                <div class="form-group" style="margin-bottom: 0;">
+                  <label class="form-label" for="customer-select">Customer</label>
+                  <select id="customer-select" class="form-control">
+                    <option value="1">Walk-in Customer (0000000000)</option>
+                  </select>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 0;">
+                  <label class="form-label" for="bill-date">Invoice Date</label>
+                  <input type="date" id="bill-date" class="form-control">
+                </div>
+              </div>
+            </div>
+
+            <!-- Product Search & Quick Add Section -->
+            <div class="card" style="padding: 18px 20px; margin-bottom: 20px;">
+              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                <label class="form-label" style="margin-bottom: 0;">Product Catalog (Click item to add)</label>
+                <input 
+                  type="text" 
+                  id="product-search" 
+                  class="filter-input" 
+                  placeholder="🔍 Search products by name..." 
+                  style="width: 250px;"
+                >
+              </div>
+
+              <!-- Product Quick Select List -->
+              <div id="product-catalog" style="max-height: 180px; overflow-y: auto; padding-right: 4px;">
+                <!-- Populated via JS -->
+              </div>
+            </div>
+
+            <!-- Current Invoice Items Cart Table -->
+            <div class="card" style="padding: 18px 20px;">
+              <div class="card-header" style="margin-bottom: 12px;">
+                <h3 class="card-title">
+                  <span>🛒</span>
+                  <span>Invoice Items</span>
+                </h3>
+                <button type="button" class="btn btn-outline btn-sm" onclick="resetBillingForm()">Clear Cart</button>
+              </div>
+
+              <div class="table-responsive">
+                <table class="data-table cart-table">
+                  <thead>
+                    <tr>
+                      <th style="width: 30px;">#</th>
+                      <th>Product Description</th>
+                      <th>Rate (Rs.)</th>
+                      <th>Qty</th>
+                      <th>GST</th>
+                      <th style="text-align: right;">Total</th>
+                      <th style="text-align: center; width: 40px;">Remove</th>
+                    </tr>
+                  </thead>
+                  <tbody id="cart-tbody">
+                    <!-- Populated via JS -->
+                  </tbody>
+                </table>
+              </div>
+
+              <div id="cart-empty-notice" style="text-align: center; padding: 40px 20px; color: var(--text-muted);">
+                <div style="font-size: 32px; margin-bottom: 8px;">🛒</div>
+                <p style="font-weight: 600;">Your cart is empty.</p>
+                <p style="font-size: 12px; margin-top: 4px;">Click on products in the catalog above to add items to this invoice.</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right Column: Live Bill Summary & Payment Settlement -->
+          <div>
+            <div class="billing-summary">
+              <h3 style="font-size: 16px; font-weight: 700; color: #0f172a; margin-bottom: 16px; padding-bottom: 10px; border-bottom: 1px solid var(--border-light);">
+                Payment & Summary
+              </h3>
+
+              <div class="summary-row">
+                <span>Items Subtotal:</span>
+                <span id="summary-subtotal" style="font-weight: 600; color: #0f172a;">Rs. 0.00</span>
+              </div>
+
+              <div class="summary-row">
+                <span>Discount (Rs.):</span>
+                <input 
+                  type="number" 
+                  id="bill-discount" 
+                  class="form-control" 
+                  style="width: 100px; padding: 4px 8px; text-align: right; font-size: 13px;" 
+                  value="0" 
+                  min="0" 
+                  step="0.01"
+                >
+              </div>
+
+              <div class="summary-row">
+                <span>GST Tax:</span>
+                <span id="summary-tax" style="font-weight: 600; color: #0f172a;">Rs. 0.00</span>
+              </div>
+
+              <div class="summary-row total-row">
+                <span>Total Amount:</span>
+                <span id="summary-grand-total" style="color: var(--primary);">Rs. 0.00</span>
+              </div>
+
+              <div style="margin: 16px 0 12px 0;">
+                <label class="form-label" for="payment-mode">Payment Mode</label>
+                <select id="payment-mode" class="form-control">
+                  <option value="CASH">Cash</option>
+                  <option value="UPI">UPI (GooglePay / PhonePe / Paytm)</option>
+                  <option value="CARD">Credit / Debit Card</option>
+                  <option value="CREDIT">Customer Credit (Unpaid / Khata)</option>
+                  <option value="CHEQUE">Bank Cheque</option>
+                </select>
+              </div>
+
+              <div style="margin-bottom: 16px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                  <label class="form-label" style="margin-bottom: 0;" for="bill-paid">Amount Paid (Rs.)</label>
+                  <div style="display: flex; gap: 4px;">
+                    <button type="button" class="btn btn-sm btn-secondary" onclick="setFullPayment()" style="padding: 2px 6px; font-size: 11px;">Full</button>
+                    <button type="button" class="btn btn-sm btn-secondary" onclick="setZeroPayment()" style="padding: 2px 6px; font-size: 11px;">Zero</button>
+                  </div>
+                </div>
+                <input 
+                  type="number" 
+                  id="bill-paid" 
+                  class="form-control" 
+                  value="0" 
+                  min="0" 
+                  step="0.01"
+                >
+              </div>
+
+              <div class="summary-row pending-row">
+                <span>Pending Balance:</span>
+                <span id="summary-pending">Rs. 0.00</span>
+              </div>
+
+              <div class="summary-row">
+                <span>Status:</span>
+                <span id="summary-status-badge" class="badge badge-unpaid">UNPAID</span>
+              </div>
+
+              <div style="margin: 16px 0 20px 0;">
+                <label class="form-label" for="bill-notes">Notes / Remarks</label>
+                <textarea id="bill-notes" class="form-control" rows="2" placeholder="Optional invoice notes..."></textarea>
+              </div>
+
+              <button 
+                type="button" 
+                id="save-bill-btn" 
+                class="btn btn-primary btn-lg" 
+                style="width: 100%; box-shadow: 0 4px 14px rgba(79, 70, 229, 0.4);"
+              >
+                Save & Generate Invoice
+              </button>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- Success & Print Invoice Modal Dialog -->
+  <div id="bill-success-modal" class="modal-overlay">
+    <div class="modal-content" style="max-width: 480px; text-align: center;">
+      <div class="modal-body" style="padding: 32px 24px;">
+        <div style="width: 64px; height: 64px; border-radius: 50%; background: #ecfdf5; color: #10b981; font-size: 32px; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 16px;">
+          ✓
+        </div>
+        <h2 style="font-size: 20px; font-weight: 800; color: #0f172a; margin-bottom: 6px;">Invoice Generated Successfully!</h2>
+        <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 20px;">The sale and stock deductions have been recorded in the database.</p>
+
+        <div style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 16px; margin-bottom: 24px; text-align: left; font-size: 13px;">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+            <span style="color: var(--text-muted);">Invoice No:</span>
+            <span id="success-bill-no" style="font-weight: 800; color: var(--primary);">INV-0000</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+            <span style="color: var(--text-muted);">Invoice Date:</span>
+            <span id="success-bill-date" style="font-weight: 600;">-</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+            <span style="color: var(--text-muted);">Total Amount:</span>
+            <span id="success-bill-total" style="font-weight: 800; color: #0f172a;">Rs. 0.00</span>
+          </div>
+          <div style="display: flex; justify-content: space-between;">
+            <span style="color: var(--text-muted);">Payment Status:</span>
+            <span id="success-bill-status" class="badge badge-paid">PAID</span>
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 10px; justify-content: center;">
+          <button type="button" id="success-print-btn" class="btn btn-primary">
+            <span>🖨️</span>
+            <span>Print Invoice</span>
+          </button>
+          <button type="button" class="btn btn-secondary" onclick="resetBillingForm()">
+            <span>+</span>
+            <span>New Bill</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="/js/api.js"></script>
+  <script src="/js/auth.js"></script>
+  <script src="/js/layout.js"></script>
+  <script src="/js/pdf.js"></script>
+  <script src="/js/billing.js"></script>
+</body>
+</html>

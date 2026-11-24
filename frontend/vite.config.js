@@ -1,39 +1,58 @@
 import { defineConfig } from 'vite';
-import react from '@vitejs/plugin-react';
 import fs from 'fs';
 import path from 'path';
 
 /**
- * Vite plugin that generates static fallback HTML files for all client-side routes.
- * This guarantees that reloading on /login, /billing, /customers, etc. never yields
- * a 404 NOT_FOUND error on static hosts like Vercel.
+ * Route fallback plugin:
+ * Ensures routes like /billing, /bills, /customers without .html extension work directly
+ * on static hosts like Vercel by generating dist/<route>/index.html.
  */
-function spaFallbackPlugin() {
+function routeFallbackPlugin() {
   return {
-    name: 'spa-fallback-plugin',
+    name: 'route-fallback-plugin',
     closeBundle() {
       const dist = path.resolve(__dirname, 'dist');
-      const indexPath = path.join(dist, 'index.html');
-      if (fs.existsSync(indexPath)) {
-        const indexHtml = fs.readFileSync(indexPath, 'utf8');
-        const routes = ['login', 'billing', 'bills', 'products', 'customers', 'reports', 'settings'];
-        routes.forEach((route) => {
-          const routeDir = path.join(dist, route);
+      const pages = ['login', 'billing', 'bills', 'products', 'customers', 'customer-ledger', 'reports', 'settings'];
+
+      pages.forEach((page) => {
+        const pageHtmlPath = path.join(dist, `${page}.html`);
+        if (fs.existsSync(pageHtmlPath)) {
+          const content = fs.readFileSync(pageHtmlPath, 'utf8');
+          const routeDir = path.join(dist, page);
           if (!fs.existsSync(routeDir)) {
             fs.mkdirSync(routeDir, { recursive: true });
           }
-          fs.writeFileSync(path.join(routeDir, 'index.html'), indexHtml);
-          fs.writeFileSync(path.join(dist, `${route}.html`), indexHtml);
-        });
-        fs.writeFileSync(path.join(dist, '404.html'), indexHtml);
-        console.log('[Build] Generated SPA route fallbacks for direct URL access and refresh.');
+          fs.writeFileSync(path.join(routeDir, 'index.html'), content);
+        }
+      });
+
+      // 404 fallback
+      const indexPath = path.join(dist, 'index.html');
+      if (fs.existsSync(indexPath)) {
+        fs.writeFileSync(path.join(dist, '404.html'), fs.readFileSync(indexPath, 'utf8'));
       }
+      console.log('[Build] Generated multi-page static route directory fallbacks.');
     }
   };
 }
 
 export default defineConfig({
-  plugins: [react(), spaFallbackPlugin()],
+  plugins: [routeFallbackPlugin()],
+  build: {
+    rollupOptions: {
+      input: {
+        main: path.resolve(__dirname, 'index.html'),
+        login: path.resolve(__dirname, 'login.html'),
+        billing: path.resolve(__dirname, 'billing.html'),
+        bills: path.resolve(__dirname, 'bills.html'),
+        products: path.resolve(__dirname, 'products.html'),
+        customers: path.resolve(__dirname, 'customers.html'),
+        customerLedger: path.resolve(__dirname, 'customer-ledger.html'),
+        reports: path.resolve(__dirname, 'reports.html'),
+        settings: path.resolve(__dirname, 'settings.html'),
+      }
+    }
+  },
   server: {
     port: 5173,
     proxy: {

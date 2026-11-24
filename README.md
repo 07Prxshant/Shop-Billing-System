@@ -56,12 +56,10 @@
 
 | Layer | Technology | Purpose |
 | :--- | :--- | :--- |
-| **Frontend** | React 18, Vite | High-performance Single Page Application (SPA) |
-| **Routing** | React Router DOM v7 | Protected client-side routing & navigation |
-| **Styling** | Tailwind CSS v3 | Responsive modern UI (works on mobile, tablet, and desktop) |
-| **Icons** | Lucide React | Clean, intuitive dashboard icons |
-| **Charts** | Chart.js & react-chartjs-2 | Visual sales trends and revenue comparisons |
-| **PDF Generation**| jsPDF & jspdf-autotable | Client-side Tax Invoices and Customer Statements |
+| **Frontend** | HTML5, CSS3, Vanilla JavaScript | Clean, readable, college-level web architecture using DOM & Fetch API |
+| **Styling** | Custom Responsive CSS3 | Flexbox, Grid, CSS Variables, and Print Stylesheets |
+| **Charts** | Chart.js | Visual sales trends and revenue comparisons |
+| **Printing & Invoices**| Browser Print & PDF Formatters | Formatted Tax Invoices and Customer Statements |
 | **Backend** | Node.js, Express.js | Robust RESTful API architecture |
 | **Database** | MySQL 8.0+ / mysql2 | Relational schema with ACID transactions |
 | **Auth** | JWT, bcryptjs | Stateless token authentication & password hashing |
@@ -73,6 +71,45 @@
 
 ```text
 shop-billing/
+├── backend/                  # Express REST API backend
+│   ├── src/
+│   │   ├── config/           # Database pool & JWT secrets
+│   │   ├── controllers/      # API endpoint business logic
+│   │   ├── middleware/       # JWT auth & error handling
+│   │   ├── routes/           # REST route definitions
+│   │   ├── services/         # Transactional billing & payment logic
+│   │   ├── utils/            # Calculation formulas & invoice numbering
+│   │   └── app.js            # Express app configuration
+│   └── test/                 # 20 automated unit & acceptance tests
+│
+├── frontend/                 # Pure HTML5, CSS3 & JavaScript frontend
+│   ├── index.html            # Executive sales & inventory dashboard
+│   ├── login.html            # Authentication login page
+│   ├── billing.html          # Point-of-Sale (POS) invoicing & cart
+│   ├── bills.html            # Invoices history, filters & print modal
+│   ├── products.html         # Products catalog & stock management
+│   ├── customers.html        # Customer directory & balances
+│   ├── customer-ledger.html  # Customer statement, payments & Khata
+│   ├── reports.html          # Periodic sales analytics & CSV export
+│   ├── settings.html         # Shop profile & invoice terms
+│   ├── css/
+│   │   └── style.css         # Complete clean, responsive CSS styling
+│   └── js/
+│       ├── api.js            # Fetch client wrapper with JWT token
+│       ├── auth.js           # Session & redirect guards
+│       ├── layout.js         # Navigation & user badge handler
+│       ├── dashboard.js      # Dashboard KPI cards & trend charts
+│       ├── billing.js        # POS billing cart & live GST math
+│       ├── bills.js          # Invoices table, filtering & modals
+│       ├── products.js       # Inventory catalog management
+│       ├── customers.js      # Customer directory controller
+│       ├── ledger.js         # Khata transactions & payment entry
+│       ├── reports.js        # Periodic reporting & CSV generator
+│       ├── settings.js       # Shop details & invoice preview
+│       └── pdf.js            # Tax invoice & account statement printer
+│
+└── package.json              # Root build & start scripts
+```
 ├── backend/
 │   ├── src/
 │   │   ├── config/

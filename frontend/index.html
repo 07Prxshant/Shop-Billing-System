@@ -1,13 +1,220 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛒</text></svg>" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Shop Billing & Ledger System</title>
-  </head>
-  <body class="bg-slate-50 text-slate-800 antialiased min-h-screen">
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard - Shop Billing System</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛒</text></svg>">
+  <link rel="stylesheet" href="/css/style.css">
+  <!-- Chart.js via CDN for college-level visual charts -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+  <div class="app-container">
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-logo">🛒</div>
+        <div class="sidebar-title">
+          <h2>Shop Billing</h2>
+          <p>POS & Customer Ledger</p>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <a href="index.html" class="nav-link active">
+          <span class="nav-icon">📊</span>
+          <span>Dashboard</span>
+        </a>
+        <a href="billing.html" class="nav-link">
+          <span class="nav-icon">🛒</span>
+          <span>New Bill</span>
+        </a>
+        <a href="bills.html" class="nav-link">
+          <span class="nav-icon">🧾</span>
+          <span>Invoices / Bills</span>
+        </a>
+        <a href="products.html" class="nav-link">
+          <span class="nav-icon">📦</span>
+          <span>Products</span>
+        </a>
+        <a href="customers.html" class="nav-link">
+          <span class="nav-icon">👥</span>
+          <span>Customers</span>
+        </a>
+        <a href="reports.html" class="nav-link">
+          <span class="nav-icon">📈</span>
+          <span>Sales Reports</span>
+        </a>
+        <a href="settings.html" class="nav-link">
+          <span class="nav-icon">⚙️</span>
+          <span>Shop Settings</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="user-badge">
+          <div class="user-info">
+            <div class="user-name current-user-name">Shop Admin</div>
+            <div class="user-role current-user-email">admin@shop.com</div>
+          </div>
+          <button class="btn-logout" title="Sign Out">🚪</button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content Wrapper -->
+    <div class="main-wrapper">
+      <!-- Top Navigation Header -->
+      <header class="topbar">
+        <div class="topbar-left">
+          <button id="menu-toggle-btn" class="menu-toggle" aria-label="Toggle Navigation">☰</button>
+          <div class="topbar-date">
+            <span>📅</span>
+            <span id="current-date-display">Today</span>
+          </div>
+        </div>
+        <div class="topbar-right">
+          <a href="billing.html" class="btn btn-primary btn-sm">
+            <span>+</span>
+            <span>New Sale</span>
+          </a>
+        </div>
+      </header>
+
+      <!-- Main Page Body -->
+      <main class="page-container">
+        <!-- Loading Spinner -->
+        <div id="dashboard-loading" style="text-align: center; padding: 60px 0; color: var(--text-muted);">
+          <div style="font-size: 32px; margin-bottom: 12px; animation: spin 1s infinite linear;">⌛</div>
+          <p>Loading shop dashboard metrics...</p>
+        </div>
+
+        <!-- Dashboard Content Container (Populated via JS) -->
+        <div id="dashboard-content" style="display: none;">
+          <!-- Welcome Banner -->
+          <div class="banner">
+            <div>
+              <span class="banner-badge">
+                <span style="display: inline-block; width: 6px; height: 6px; background: #34d399; border-radius: 50%;"></span>
+                Online & Operational
+              </span>
+              <h1 class="banner-title">Welcome back, <span class="current-user-name">Admin</span>! 👋</h1>
+              <p class="banner-text">Real-time counter sales, monthly revenue, and customer credit ledger.</p>
+            </div>
+            <div class="banner-actions">
+              <a href="billing.html" class="btn btn-primary">
+                <span>🛒</span>
+                <span>Create New Bill</span>
+              </a>
+              <a href="customers.html" class="btn btn-outline" style="color: #ffffff; border-color: rgba(255,255,255,0.3);">
+                <span>👥</span>
+                <span>Customer Ledgers</span>
+              </a>
+            </div>
+          </div>
+
+          <!-- Top Metric KPI Cards -->
+          <div class="stat-grid">
+            <div class="stat-card">
+              <div class="stat-info">
+                <div class="stat-label">Today's Sales</div>
+                <div id="kpi-today-sales" class="stat-value">Rs. 0.00</div>
+                <div class="stat-desc">Live counter billed today</div>
+              </div>
+              <div class="stat-icon stat-icon-indigo">💵</div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-info">
+                <div class="stat-label">This Month's Sales</div>
+                <div id="kpi-month-sales" class="stat-value">Rs. 0.00</div>
+                <div class="stat-desc">Current calendar month total</div>
+              </div>
+              <div class="stat-icon stat-icon-blue">📈</div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-info">
+                <div class="stat-label">Total Pending Dues</div>
+                <div id="kpi-pending-dues" class="stat-value" style="color: var(--danger-text);">Rs. 0.00</div>
+                <div class="stat-desc">Outstanding customer credit</div>
+              </div>
+              <div class="stat-icon stat-icon-amber">⏳</div>
+            </div>
+          </div>
+
+          <!-- Main Grid: Trend Chart & Low Stock Alerts -->
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px; margin-bottom: 24px;">
+            <!-- Sales Chart (Wide) -->
+            <div class="card" style="margin-bottom: 0;">
+              <div class="card-header">
+                <h3 class="card-title">
+                  <span>📈</span>
+                  <span>Sales Revenue Trend</span>
+                </h3>
+                <a href="reports.html" style="font-size: 12px; font-weight: 600; color: var(--primary);">View Full Analytics &rarr;</a>
+              </div>
+              <div style="height: 250px; position: relative;">
+                <canvas id="sales-trend-chart"></canvas>
+              </div>
+            </div>
+
+            <!-- Low Stock Alerts -->
+            <div class="card" style="margin-bottom: 0;">
+              <div class="card-header">
+                <h3 class="card-title">
+                  <span>⚠️</span>
+                  <span>Low Stock Alert</span>
+                </h3>
+                <a href="products.html" style="font-size: 12px; font-weight: 600; color: var(--primary);">Manage Stock &rarr;</a>
+              </div>
+              <div id="low-stock-list">
+                <!-- Dynamically populated via JS -->
+              </div>
+            </div>
+          </div>
+
+          <!-- Bottom Grid: Top Customers & Top Products -->
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px;">
+            <!-- Top Customers -->
+            <div class="card">
+              <div class="card-header">
+                <h3 class="card-title">
+                  <span>👥</span>
+                  <span>Top Customers by Spending</span>
+                </h3>
+                <a href="customers.html" style="font-size: 12px; font-weight: 600; color: var(--primary);">All Customers &rarr;</a>
+              </div>
+              <div id="top-customers-list">
+                <!-- Dynamically populated via JS -->
+              </div>
+            </div>
+
+            <!-- Top Products -->
+            <div class="card">
+              <div class="card-header">
+                <h3 class="card-title">
+                  <span>📦</span>
+                  <span>Top Selling Products</span>
+                </h3>
+                <a href="products.html" style="font-size: 12px; font-weight: 600; color: var(--primary);">All Products &rarr;</a>
+              </div>
+              <div id="top-products-list">
+                <!-- Dynamically populated via JS -->
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="/js/api.js"></script>
+  <script src="/js/auth.js"></script>
+  <script src="/js/layout.js"></script>
+  <script src="/js/dashboard.js"></script>
+</body>
 </html>
