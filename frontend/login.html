@@ -3,6 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="description" content="Academic College Project - Shop Billing & Invoicing System Demo for educational viva evaluation.">
   <title>Login - Shop Billing & Ledger System</title>
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛒</text></svg>">
   <link rel="stylesheet" href="/css/style.css">
@@ -21,25 +23,39 @@
       max-width: 440px;
       background: #ffffff;
       border-radius: var(--radius-xl);
-      padding: 36px 32px;
+      padding: 32px 28px;
       box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.1);
+    }
+    .academic-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #e0e7ff;
+      color: #3730a3;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 12px;
+      border-radius: 999px;
+      margin-bottom: 14px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
     }
     .login-brand {
       text-align: center;
-      margin-bottom: 28px;
+      margin-bottom: 22px;
     }
     .brand-icon-box {
-      width: 64px;
-      height: 64px;
+      width: 58px;
+      height: 58px;
       background: var(--primary);
       color: #ffffff;
       border-radius: var(--radius-lg);
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      font-size: 32px;
+      font-size: 28px;
       box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.4);
-      margin-bottom: 12px;
+      margin-bottom: 10px;
     }
     .login-title {
       font-size: 22px;
@@ -56,7 +72,7 @@
       border: 1px dashed var(--primary-border);
       padding: 12px 14px;
       border-radius: var(--radius-md);
-      margin-bottom: 20px;
+      margin-bottom: 18px;
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -70,6 +86,15 @@
     .demo-info strong {
       color: var(--text-main);
     }
+    .academic-disclaimer {
+      margin-top: 20px;
+      padding-top: 14px;
+      border-top: 1px solid #f1f5f9;
+      font-size: 11px;
+      color: #64748b;
+      text-align: center;
+      line-height: 1.45;
+    }
   </style>
 </head>
 <body>
@@ -77,6 +102,8 @@
   <div class="login-container">
     <div class="login-card">
       <div class="login-brand">
+        <div class="academic-pill">🎓 Academic Mini-Project Demo</div>
+        <br>
         <div class="brand-icon-box">🛒</div>
         <h1 class="login-title">Shop Billing System</h1>
         <p class="login-desc">POS Invoicing, Stock & Customer Ledger Management</p>
@@ -129,6 +156,12 @@
           Sign In to Shop
         </button>
       </form>
+
+      <div class="academic-disclaimer">
+        ⚠️ <strong>College Project Demonstration</strong><br>
+        For educational evaluation and viva presentation only.<br>
+        No real customer or financial data is processed.
+      </div>
     </div>
   </div>
 
